@@ -1,29 +1,12 @@
 <?php
 class SoftaculousPlugin extends Plugin
 {
-    private static $version = '1.1';
-
-    private static $authors = ['name' => 'Softaculous Ltd', 'url' => 'https://softaculous.com'];
-
     public function __construct()
     {
         Language::loadLang('softaculous', null, dirname(__FILE__) . DS . 'language' . DS);
         Loader::loadComponents($this, ['Input']);
-    }
 
-    public function getName()
-    {
-        return Language::_('SoftaculousPlugin.name', true);
-    }
-
-    public function getAuthors()
-    {
-        return self::$authors;
-    }
-
-    public function getVersion()
-    {
-        return self::$version;
+        $this->loadConfig(dirname(__FILE__) . DS . 'config.json');
     }
 
     public function install($plugin_id)
@@ -48,17 +31,11 @@ class SoftaculousPlugin extends Plugin
 
     public function softAutoInstall($event)
     {
-        if (!isset($this->Record)) {
-            Loader::loadComponents($this, ['Record']);
-        }
         if (!isset($this->ModuleManager)) {
             Loader::loadModels($this, ['ModuleManager']);
         }
         if (!isset($this->Services)) {
             Loader::loadModels($this, ['Services']);
-        }
-        if (!isset($this->Clients)) {
-            Loader::loadModels($this, ['Clients']);
         }
 
         $par = $event->getParams();
@@ -79,30 +56,10 @@ class SoftaculousPlugin extends Plugin
         if ($service_activated && $module_info && in_array($module_info->class, $accepted_modules)) {
             // Fetch necessary data
             $service = $this->Services->get($par['service_id']);
-            $client = $this->Clients->get($service->client_id);
-            $module_row = $this->ModuleManager->getRow($par['old_service']->module_row_id);
+            $module_row = $this->ModuleManager->getRow($service->module_row_id);
 
-            // Set server info
-            $server_info = [
-                $module_info->class . '_username' => '',
-                $module_info->class . '_password' => '',
-                'host' => ($module_row->meta->server_name == 'Plesk'
-                    ? $module_row->meta->ip_address
-                    : $module_row->meta->host_name)
-            ];
-
-            // Get the username and password from the module
-            foreach ($service->fields as $field) {
-                if (array_key_exists($field->key, $server_info)) {
-                    $server_info[$field->key] = $field->value;
-                }
-            }
-
-            // Use the client's email
-            $par['vars']['email'] = $client->email;
-
-            if (array_key_exists('cpanel_domain', $par['vars'])) {
-                $this->softInstallCpanel($par['vars'], $server_info);
+            if ($module_info->class == 'cpanel') {
+                $this->softInstallCpanel($service, $module_row->meta->host_name);
             }
         }
     }
@@ -116,6 +73,10 @@ class SoftaculousPlugin extends Plugin
      */
     private function getModuleClassByPricingId($package_pricing_id)
     {
+        if (!isset($this->Record)) {
+            Loader::loadComponents($this, ['Record']);
+        }
+
         return $this->Record->select(['modules.*', 'packages.id' => 'package_id'])->from('package_pricing')->
             innerJoin('packages', 'packages.id', '=', 'package_pricing.package_id', false)->
             innerJoin('modules', 'modules.id', '=', 'packages.module_id', false)->
@@ -123,20 +84,38 @@ class SoftaculousPlugin extends Plugin
             fetch();
     }
 
-    public function softInstallCpanel($par, $server_info)
+    /**
+     * Validates informations and runs a softaculous installation script on cPanel
+     *
+     * @param stdClass $service An object representing the cPanel service to execute a script for
+     * @param string $host The host name of the cPanel installation
+     * @return boolean Whether the script succeeded
+     */
+    public function softInstallCpanel($service, $host)
     {
+        if (!isset($this->Clients)) {
+            Loader::loadModels($this, ['Clients']);
+        }
+        if (!isset($this->Form)) {
+            Loader::loadComponents($this, ['Form']);
+        }
+
+        // Get data for executing script
+        $service_fields = $this->Form->collapseObjectArray($service->fields, 'value', 'key');
+        $config_options = $this->Form->collapseObjectArray($service->options, 'value', 'option_name');
+        $client = $this->Clients->get($service->client_id);
 
         // Login and get the cookies
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://' . $server_info['host'] . ':2083/login/');
+        curl_setopt($ch, CURLOPT_URL, 'https://' . $host . ':2083/login/');
         curl_setopt($ch, CURLOPT_VERBOSE, 0);
 
         // Turn off the server and peer verification (TrustManager Concept).
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 
-        $post = ['user' => $server_info['cpanel_username'],
-                'pass' => $server_info['cpanel_password'],
+        $post = ['user' => $service_fields['cpanel_username'],
+                'pass' => $service_fields['cpanel_password'],
                 'goto_uri' => '/'];
 
         curl_setopt($ch, CURLOPT_POST, 1);
@@ -186,7 +165,7 @@ class SoftaculousPlugin extends Plugin
         }
 
         $path = trim(dirname($parsed['path']));
-        $path = ($path{0} == '/' ? $path : '/'.$path);
+        $path = ($path{0} == '/' ? $path : '/' . $path);
 
         curl_close($ch);
 
@@ -202,22 +181,22 @@ class SoftaculousPlugin extends Plugin
         }
 
         // Make the Login system
-        $login = 'https://' . rawurlencode($server_info['cpanel_username']) . ':'
-            . rawurlencode($server_info['cpanel_password']) . '@' . $server_info['host'] . ':2083'
+        $login = 'https://' . rawurlencode($service_fields['cpanel_username']) . ':'
+            . rawurlencode($service_fields['cpanel_password']) . '@' . $host . ':2083'
             . $path . '/softaculous/index.live.php';
 
-        $data['softdomain'] = $par['cpanel_domain'];
+        $data['softdomain'] = $service_fields['cpanel_domain'];
 
         // OPTIONAL - By default it will be installed in the /public_html folder
-        $data['softdirectory'] = (!empty($par['configoptions']['directory']) ? $par['configoptions']['directory'] : '');
+        $data['softdirectory'] = (!empty($config_options['directory']) ? $config_options['directory'] : '');
 
-        $data['admin_username'] = $par['configoptions']['admin_name'];
-        $data['admin_pass'] = $par['configoptions']['admin_pass'];
-        $data['admin_email'] = $par['email'];
+        $data['admin_username'] = $config_options['admin_name'];
+        $data['admin_pass'] = $config_options['admin_pass'];
+        $data['admin_email'] = $client->email;
 
         // List of Scripts
         $scripts = $this->softaculousScripts();
-        $ins_script = $par['configoptions']['script'];
+        $ins_script = $config_options['script'];
 
         // Which Script are we to install ?
         foreach ($scripts as $key => $value) {
@@ -241,7 +220,6 @@ class SoftaculousPlugin extends Plugin
         $res = $this->scriptInstallRequest($sid, $login, $data); // Will install the script
         $res = trim($res);
         if (preg_match('/installed/is', $res)) {
-            $success = true;
             return true;
         } else {
             $this->Input->setErrors([
@@ -253,6 +231,13 @@ class SoftaculousPlugin extends Plugin
         }
     }
 
+    /**
+     * Gets a list of scripts available in softaculous
+     *
+     * @global type $SoftaculousScripts
+     * @global type $add_SoftaculousScripts
+     * @return array A list of scripts available in softaculous
+     */
     private function softaculousScripts()
     {
         global $SoftaculousScripts, $add_SoftaculousScripts;
@@ -293,6 +278,14 @@ class SoftaculousPlugin extends Plugin
         return $SoftaculousScripts;
     }
 
+    /**
+     * Sends the installation request to cPanel
+     *
+     * @param int $sid The id of the script to use
+     * @param string $login The login url/credentials to use
+     * @param array $data The data to send to cPanel
+     * @return string 'installed' on success, an error message otherwise
+     */
     private function scriptInstallRequest($sid, $login, $data)
     {
         @define('SOFTACULOUS', 1);

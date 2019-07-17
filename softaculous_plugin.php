@@ -51,8 +51,8 @@ class SoftaculousPlugin extends Plugin
                 )
             );
 
-        // This plugin only supports the follwing modules: cPanel
-        $accepted_modules = ['cpanel'];
+        // This plugin only supports the follwing modules: cPanel and CentOS Web Panel
+        $accepted_modules = ['cpanel', 'centoswebpanel'];
         if ($service_activated && $module_info && in_array($module_info->class, $accepted_modules)) {
             // Fetch necessary data
             $service = $this->Services->get($par['service_id']);
@@ -60,6 +60,10 @@ class SoftaculousPlugin extends Plugin
 
             if ($module_info->class == 'cpanel') {
                 $this->softInstallCpanel($service, $module_row->meta->host_name);
+            }
+
+            if ($module_info->class == 'centoswebpanel') {
+                $this->softInstallCentoswebpanel($service, $module_row->meta->host_name);
             }
         }
     }
@@ -228,6 +232,66 @@ class SoftaculousPlugin extends Plugin
                 ]
             ]);
             return false;
+        }
+    }
+
+    /**
+     * Validates informations and runs a softaculous installation script on CentOS Web Panel
+     *
+     * @param stdClass $service An object representing the CentOS Web Panel service to execute a script for
+     * @param string $host The host name of the CentOS Web Panel installation
+     * @return boolean Whether the script succeeded
+     */
+    public function softInstallCentoswebpanel($service, $host)
+    {
+        if (!isset($this->Clients)) {
+            Loader::loadModels($this, ['Clients']);
+        }
+        if (!isset($this->Form)) {
+            Loader::loadComponents($this, ['Form']);
+        }
+
+        // Get data for executing script
+        $service_fields = $this->Form->collapseObjectArray($service->fields, 'value', 'key');
+        $config_options = $this->Form->collapseObjectArray($service->options, 'value', 'option_name');
+        $client = $this->Clients->get($service->client_id);
+
+        $post = [
+            'username' => $service_fields['centoswebpanel_username'],
+            'password' => $service_fields['centoswebpanel_password']
+        ];
+
+        // Login and get the cookies
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://' . $host . ':2031/login/index.php');
+        curl_setopt($ch, CURLOPT_VERBOSE, 0);
+
+        // Turn off the server and peer verification (TrustManager Concept).
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
+
+        // Check the Header
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+        // Get response from the server.
+        $response = curl_exec($ch);
+
+        $error = curl_error($ch);
+        ##
+        # The CURL request seems to simply be returning the login page, so I believe
+        # it is not working but still passes this error check
+        ##
+        // Did we login ?
+        if ($response === false) {
+            $this->Input->setErrors([
+                'login' => [
+                    'invalid' => 'Could not login to the remote server. cURL Error : ' . $error
+                ]
+            ]);
+            return;
         }
     }
 

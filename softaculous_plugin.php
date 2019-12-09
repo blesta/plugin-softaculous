@@ -52,7 +52,7 @@ class SoftaculousPlugin extends Plugin
             );
 
         // This plugin only supports the follwing modules: cPanel
-        $accepted_modules = ['cpanel'];
+        $accepted_modules = ['cpanel', 'plesk'];
         if ($service_activated && $module_info && in_array($module_info->class, $accepted_modules)) {
             // Fetch necessary data
             $service = $this->Services->get($par['service_id']);
@@ -60,6 +60,10 @@ class SoftaculousPlugin extends Plugin
 
             if ($module_info->class == 'cpanel') {
                 $this->softInstallCpanel($service, $module_row->meta->host_name);
+            }
+
+            if ($module_info->class == 'plesk') {
+                $this->softInstallPlesk($service, $module_row->meta->host_name);
             }
         }
     }
@@ -229,6 +233,24 @@ class SoftaculousPlugin extends Plugin
             ]);
             return false;
         }
+    }
+
+    /**
+     * Validates information and runs a softaculous installation script on Plesk
+     *
+     * @param stdClass $service An object representing the Plesk service to execute a script for
+     * @param string $host The host name of the Plesk installation
+     * @return boolean Whether the script succeeded
+     */
+    public function softInstallPlesk($service, $host)
+    {
+        // Login to Plesk
+        //
+        // Login to Softaculus
+        //
+        // Select script
+        //
+        // Run script
     }
 
     /**

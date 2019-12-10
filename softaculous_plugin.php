@@ -44,7 +44,8 @@ class SoftaculousPlugin extends Plugin
         $module_info = $this->getModuleClassByPricingId($par['vars']['pricing_id']);
 
         // Make sure the service is being activated at this time
-        $service_activated = $par['vars']['status'] == 'active'
+        $service_activated = isset($par['vars']['status'])
+            && $par['vars']['status'] == 'active'
             && ($event->getName() == 'Services.add'
                 || ($event->getName() == 'Services.edit'
                     && in_array($par['old_service']->status, ['pending', 'in_review'])
@@ -57,13 +58,14 @@ class SoftaculousPlugin extends Plugin
             // Fetch necessary data
             $service = $this->Services->get($par['service_id']);
             $module_row = $this->ModuleManager->getRow($service->module_row_id);
+            try {
+                $installer = $this->loadInstaller($module_info->class);
 
-            if ($module_info->class == 'cpanel') {
-                $this->softInstallCpanel($service, $module_row->meta->host_name);
-            }
-
-            if ($module_info->class == 'centoswebpanel') {
-                $this->softInstallCentoswebpanel($service, $module_row->meta->host_name);
+                $installer->install($service, $module_row->meta);
+            } catch (Throwable $e) {
+                throw new Exception('Unable to load library');
+            } catch (Exception $e) {
+                throw new Exception('Unable to load library');
             }
         }
     }
@@ -88,337 +90,24 @@ class SoftaculousPlugin extends Plugin
             fetch();
     }
 
-    /**
-     * Validates informations and runs a softaculous installation script on cPanel
-     *
-     * @param stdClass $service An object representing the cPanel service to execute a script for
-     * @param string $host The host name of the cPanel installation
-     * @return boolean Whether the script succeeded
-     */
-    public function softInstallCpanel($service, $host)
-    {
-        if (!isset($this->Clients)) {
-            Loader::loadModels($this, ['Clients']);
-        }
-        if (!isset($this->Form)) {
-            Loader::loadComponents($this, ['Form']);
+	/**
+	 * Loads the given library into this object
+	 *
+	 * @param string $panel_name The panel to load an installer for
+     * @return SoftaculousInstaller
+	 */
+	private function loadInstaller($panel_name) {
+        $class_name = ucwords($panel_name) . 'Installer';
+        if (isset($this->{$class_name})) {
+            return $this->{$class_name};
         }
 
-        // Get data for executing script
-        $service_fields = $this->Form->collapseObjectArray($service->fields, 'value', 'key');
-        $config_options = $this->Form->collapseObjectArray($service->options, 'value', 'option_name');
-        $client = $this->Clients->get($service->client_id);
+		$file_name = dirname(__FILE__) . DS . 'lib' . DS . $panel_name . '_installer.php';
 
-        // Login and get the cookies
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://' . $host . ':2083/login/');
-        curl_setopt($ch, CURLOPT_VERBOSE, 0);
+		// Load the library requested
+		include_once $file_name;
 
-        // Turn off the server and peer verification (TrustManager Concept).
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-
-        $post = ['user' => $service_fields['cpanel_username'],
-                'pass' => $service_fields['cpanel_password'],
-                'goto_uri' => '/'];
-
-        curl_setopt($ch, CURLOPT_POST, 1);
-        $nvpreq = http_build_query($post);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $nvpreq);
-
-        // Check the Header
-        curl_setopt($ch, CURLOPT_HEADER, 1);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
-        $no_follow_location = 0;
-        if (function_exists('ini_get')) {
-            $open_basedir = ini_get('open_basedir'); // Followlocation does not work if open_basedir is enabled
-            if (!empty($open_basedir)) {
-                $no_follow_location = 1;
-            }
-        }
-
-        if (empty($no_follow_location)) {
-            // Follow redirects
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
-        }
-
-        //curl_setopt($ch, CURLOPT_COOKIEJAR, '-');
-
-        // Get response from the server.
-        $resp = curl_exec($ch);
-
-        $error = curl_error($ch);
-        // Did we login ?
-        if ($resp === false) {
-            $this->Input->setErrors([
-                'login' => [
-                    'invalid' => 'Could not login to the remote server. cURL Error : ' . $error
-                ]
-            ]);
-            return;
-        }
-
-        // Get the cpsess and path to frontend theme
-        $curl_info = curl_getinfo($ch);
-
-        if (!empty($curl_info['redirect_url'])) {
-            $parsed = parse_url($curl_info['redirect_url']);
-        } else {
-            $parsed = parse_url($curl_info['url']);
-        }
-
-        $path = trim(dirname($parsed['path']));
-        $path = ($path{0} == '/' ? $path : '/' . $path);
-
-        curl_close($ch);
-
-        // Did we login ?
-        if (empty($path)) {
-            $this->Input->setErrors([
-                'login' => [
-                    'invalid' => 'Could not determine the location of the Softaculous on the remote server.'
-                        . ' There could be a firewall preventing access.'
-                ]
-            ]);
-            return;
-        }
-
-        // Make the Login system
-        $login = 'https://' . rawurlencode($service_fields['cpanel_username']) . ':'
-            . rawurlencode($service_fields['cpanel_password']) . '@' . $host . ':2083'
-            . $path . '/softaculous/index.live.php';
-
-        $data['softdomain'] = $service_fields['cpanel_domain'];
-
-        // OPTIONAL - By default it will be installed in the /public_html folder
-        $data['softdirectory'] = (!empty($config_options['directory']) ? $config_options['directory'] : '');
-
-        $data['admin_username'] = $config_options['admin_name'];
-        $data['admin_pass'] = $config_options['admin_pass'];
-        $data['admin_email'] = $client->email;
-
-        // List of Scripts
-        $scripts = $this->softaculousScripts();
-        $ins_script = $config_options['script'];
-
-        // Which Script are we to install ?
-        foreach ($scripts as $key => $value) {
-            if (trim(strtolower($value['name'])) == trim(strtolower($ins_script))) {
-                $sid = $key;
-                break;
-            }
-        }
-
-        // Did we find the Script ?
-        if (empty($sid)) {
-            $this->Input->setErrors([
-                'script_id' => [
-                    'invalid' => 'Could not determine the script to be installed.'
-                    . ' Please make sure the script name is correct. Script Name : ' . $ins_script
-                ]
-            ]);
-            return;
-        }
-
-        $res = $this->scriptInstallRequest($sid, $login, $data); // Will install the script
-        $res = trim($res);
-        if (preg_match('/installed/is', $res)) {
-            return true;
-        } else {
-            $this->Input->setErrors([
-                'script_id' => [
-                    'invalid' => 'Could not install script: ' . $res
-                ]
-            ]);
-            return false;
-        }
-    }
-
-    /**
-     * Validates informations and runs a softaculous installation script on CentOS Web Panel
-     *
-     * @param stdClass $service An object representing the CentOS Web Panel service to execute a script for
-     * @param string $host The host name of the CentOS Web Panel installation
-     * @return boolean Whether the script succeeded
-     */
-    public function softInstallCentoswebpanel($service, $host)
-    {
-        if (!isset($this->Clients)) {
-            Loader::loadModels($this, ['Clients']);
-        }
-        if (!isset($this->Form)) {
-            Loader::loadComponents($this, ['Form']);
-        }
-
-        // Get data for executing script
-        $service_fields = $this->Form->collapseObjectArray($service->fields, 'value', 'key');
-        $config_options = $this->Form->collapseObjectArray($service->options, 'value', 'option_name');
-        $client = $this->Clients->get($service->client_id);
-
-        $post = [
-            'username' => $service_fields['centoswebpanel_username'],
-            'password' => $service_fields['centoswebpanel_password']
-        ];
-
-        // Login and get the cookies
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://' . $host . ':2031/login/index.php');
-        curl_setopt($ch, CURLOPT_VERBOSE, 0);
-
-        // Turn off the server and peer verification (TrustManager Concept).
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
-
-        // Check the Header
-        curl_setopt($ch, CURLOPT_HEADER, 1);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
-        // Get response from the server.
-        $response = curl_exec($ch);
-
-        $error = curl_error($ch);
-        ##
-        # The CURL request seems to simply be returning the login page, so I believe
-        # it is not working but still passes this error check
-        ##
-        // Did we login ?
-        if ($response === false) {
-            $this->Input->setErrors([
-                'login' => [
-                    'invalid' => 'Could not login to the remote server. cURL Error : ' . $error
-                ]
-            ]);
-            return;
-        }
-    }
-
-    /**
-     * Gets a list of scripts available in softaculous
-     *
-     * @global type $SoftaculousScripts
-     * @global type $add_SoftaculousScripts
-     * @return array A list of scripts available in softaculous
-     */
-    private function softaculousScripts()
-    {
-        global $SoftaculousScripts, $add_SoftaculousScripts;
-
-        // Set the curl parameters.
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://api.softaculous.com/scripts.php?in=serialize');
-
-        // Turn off the server and peer verification (TrustManager Concept).
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        //curl_setopt($ch, CURLOPT_SSL_CIPHER_LIST, 'RC4-SHA:RC4-MD5');
-        // This is becuase some servers cannot access https without this
-
-        // Get response from the server
-        $resp = curl_exec($ch);
-        $scripts = unserialize($resp);
-        $error = curl_error($ch);
-
-        if (!is_array($scripts)) {
-            $this->Input->setErrors([
-                'no_script_list' => [
-                    'invalid' => 'Could not download list of scripts. ' . $error
-                ]
-            ]);
-        }
-
-        $SoftaculousScripts = $scripts;
-
-        if (is_array($add_SoftaculousScripts)) {
-            foreach ($add_SoftaculousScripts as $k => $v) {
-                $SoftaculousScripts[$k] = $v;
-            }
-        }
-
-        return $SoftaculousScripts;
-    }
-
-    /**
-     * Sends the installation request to cPanel
-     *
-     * @param int $sid The id of the script to use
-     * @param string $login The login url/credentials to use
-     * @param array $data The data to send to cPanel
-     * @return string 'installed' on success, an error message otherwise
-     */
-    private function scriptInstallRequest($sid, $login, $data)
-    {
-        @define('SOFTACULOUS', 1);
-
-        $scripts = $this->softaculousScripts();
-
-        if (empty($scripts[$sid])) {
-            $this->Input->setErrors([
-                'no_script_loaded' => [
-                    'invalid' => 'List of scripts not loaded. Aborting Installation attempt!'
-                ]
-            ]);
-            return;
-        }
-
-        // Add a Question mark if necessary
-        if (substr_count($login, '?') < 1) {
-            $login = $login . '?';
-        }
-
-        // Login PAGE
-        if ($scripts[$sid]['type'] == 'js') {
-            $login = $login . 'act=js&soft=' . $sid;
-        } elseif ($scripts[$sid]['type'] == 'perl') {
-            $login = $login . 'act=perl&soft=' . $sid;
-        } elseif ($scripts[$sid]['type'] == 'java') {
-            $login = $login . 'act=java&soft=' . $sid;
-        } else {
-            $login = $login . 'act=software&soft=' . $sid;
-        }
-
-        $login = $login . '&autoinstall=' . rawurlencode(base64_encode(serialize($data)));
-
-        // Set the curl parameters.
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $login);
-
-        // Turn off the server and peer verification (TrustManager Concept).
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-
-        // Is there a Cookie
-        if (!empty($cookie)) {
-            curl_setopt($ch, CURLOPT_COOKIESESSION, true);
-            curl_setopt($ch, CURLOPT_COOKIE, $cookie);
-        }
-
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        // Get response from the server.
-        $resp = curl_exec($ch);
-        $error = curl_error($ch);
-        // Did we reach out to that place ?
-        if ($resp === false) {
-            $this->Input->setErrors([
-                'script_not_installed' => [
-                    'invalid' => 'Installation not completed. cURL Error : ' . $error
-                ]
-            ]);
-        }
-
-        curl_close($ch);
-
-        // Was there any error ?
-        if ($resp != 'installed') {
-            return $resp;
-        }
-
-        return 'installed';
-    }
+        $this->{$class_name} = new $class_name();
+        return $this->{$class_name};
+	}
 }

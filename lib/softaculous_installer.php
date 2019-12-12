@@ -130,12 +130,6 @@ abstract class SoftactulousInstaller
         }
 
         curl_close($ch);
-
-        // Was there any error ?
-        if ($resp != 'installed') {
-            return $resp;
-        }
-
-        return 'installed';
+        return $resp;
     }
 }

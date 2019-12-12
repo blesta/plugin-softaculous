@@ -105,13 +105,13 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         );
 
 
-        // TODO Fix this check since it is giving false positives
-        if (preg_match('/installed/is', $response)) {
+        if ('installed' == strtolower($response)) {
             return true;
         } else {
+            $messages = unserialize($response);
             $this->Input->setErrors([
                 'script_id' => [
-                    'invalid' => 'Could not install script: ' . $response
+                    'invalid' => 'Could not install script: ' . ($messages ? $messages[0] : $response)
                 ]
             ]);
             return false;

@@ -90,13 +90,14 @@ class SoftaculousPlugin extends Plugin
             fetch();
     }
 
-	/**
+    /**
 	 * Loads the given library into this object
 	 *
 	 * @param string $panel_name The panel to load an installer for
      * @return SoftaculousInstaller
 	 */
-	private function loadInstaller($panel_name) {
+	private function loadInstaller($panel_name)
+    {
         $class_name = ucwords($panel_name) . 'Installer';
         if (isset($this->{$class_name})) {
             return $this->{$class_name};
@@ -104,10 +105,14 @@ class SoftaculousPlugin extends Plugin
 
 		$file_name = dirname(__FILE__) . DS . 'lib' . DS . $panel_name . '_installer.php';
 
-		// Load the library requested
-		include_once $file_name;
+        if (file_exists($file_name)) {
+            // Load the library requested
+            include_once $file_name;
 
-        $this->{$class_name} = new $class_name();
-        return $this->{$class_name};
+            $this->{$class_name} = new $class_name();
+            return $this->{$class_name};
+        } else {
+            throw new Exception('Unable to load library');
+        }
 	}
 }

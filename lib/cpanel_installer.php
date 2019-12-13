@@ -11,7 +11,7 @@ class CpanelInstaller extends SoftactulousInstaller
      * @param stdClass $meta The module row meta data for the service
      * @return boolean Whether the script succeeded
      */
-    public function install($service, $meta)
+    public function install(stdClass $service, stdClass $meta)
     {
         if (!isset($this->Clients)) {
             Loader::loadModels($this, ['Clients']);

@@ -10,7 +10,7 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
      * @param stdClass $meta The module row meta data for the service
      * @return boolean Whether the script succeeded
      */
-    public function install($service, $meta)
+    public function install(stdClass $service, stdClass $meta)
     {
         if (!isset($this->Clients)) {
             Loader::loadModels($this, ['Clients']);
@@ -188,16 +188,25 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         return trim(substr($response, $curlInfo['header_size']));
     }
 
+    /**
+     * Parses a response from CentOS Web Panel for cookies and records them for later use
+     *
+     * @param string $response The string response from CentOS Web Panel
+     */
     private function setCookie($response)
     {
         preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $response, $matches);
-        $cookies = array();
-        foreach($matches[1] as $item) {
-            parse_str($item, $cookie);
-            $cookies = array_merge($cookies, $cookie);
-        }
-        foreach ($cookies as $cookie => $value) {
-            $this->cookie = $cookie . '=' . $value;
+
+        if (!empty($matches)) {
+            $cookies = [];
+            foreach ($matches[1] as $item) {
+                parse_str($item, $cookie);
+                $cookies = array_merge($cookies, $cookie);
+            }
+
+            foreach ($cookies as $cookie => $value) {
+                $this->cookie = $cookie . '=' . $value;
+            }
         }
     }
 }

@@ -1,6 +1,9 @@
 <?php
+use Blesta\Core\Util\Common\Traits\Container;
 class SoftaculousPlugin extends Plugin
 {
+    // Load traits
+    use Container;
     public function __construct()
     {
         Language::loadLang('softaculous', null, dirname(__FILE__) . DS . 'language' . DS);
@@ -54,7 +57,7 @@ class SoftaculousPlugin extends Plugin
 
         // This plugin only supports the follwing modules: cPanel and CentOS Web Panel
         $accepted_modules = ['cpanel', 'centoswebpanel'];
-        if ($service_activated && $module_info && in_array($module_info->class, $accepted_modules)) {
+        if (true||$service_activated && $module_info && in_array($module_info->class, $accepted_modules)) {
             // Fetch necessary data
             $service = $this->Services->get($par['service_id']);
             $module_row = $this->ModuleManager->getRow($service->module_row_id);
@@ -109,7 +112,8 @@ class SoftaculousPlugin extends Plugin
             // Load the library requested
             include_once $file_name;
 
-            $this->{$class_name} = new $class_name();
+            $logger = $this->getFromContainer('logger');
+            $this->{$class_name} = new $class_name($logger);
             return $this->{$class_name};
         } else {
             throw new Exception('Unable to load library');

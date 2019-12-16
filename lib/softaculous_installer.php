@@ -2,6 +2,22 @@
 abstract class SoftactulousInstaller
 {
     /**
+     * @var Monolog\Logger An instance of the logger
+     */
+    protected $logger;
+
+    /**
+     * The installer constructor
+     *
+     * @param Monolog\Logger $logger An instance of the logger
+     */
+    public function __construct($logger)
+    {
+        Loader::loadComponents($this, ['Input']);
+        $this->logger = $logger;
+    }
+
+    /**
      * Validates informations and runs a softaculous installation script on the given web panel
      *
      * @param stdClass $service An object representing the web panel service to execute a script for

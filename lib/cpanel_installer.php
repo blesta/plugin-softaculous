@@ -67,9 +67,9 @@ class CpanelInstaller extends SoftactulousInstaller
         $error = curl_error($ch);
         // Did we login ?
         if ($resp === false) {
-            $this->Input->setErrors([
-                'login' => ['invalid' => Language::_('SoftaculousPlugin.remote_curl_error', true, $error)]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.remote_curl_error', true, $error);
+            $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
             return;
         }
 
@@ -89,9 +89,9 @@ class CpanelInstaller extends SoftactulousInstaller
 
         // Did we login ?
         if (empty($path)) {
-            $this->Input->setErrors([
-                'login' => ['invalid' => Language::_('SoftaculousPlugin.remote_firewall_error', true)]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.remote_firewall_error', true);
+            $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
             return;
         }
 
@@ -123,11 +123,9 @@ class CpanelInstaller extends SoftactulousInstaller
 
         // Did we find the Script ?
         if (empty($sid)) {
-            $this->Input->setErrors([
-                'script_id' => [
-                    'invalid' => Language::_('SoftaculousPlugin.script_selected_error', true, $ins_script)
-                ]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.script_selected_error', true, $ins_script);
+            $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
             return;
         }
 
@@ -137,15 +135,13 @@ class CpanelInstaller extends SoftactulousInstaller
             return true;
         }
 
-        $this->Input->setErrors([
-            'script_id' => [
-                'invalid' => Language::_(
-                    'SoftaculousPlugin.script_no_installed',
-                    true,
-                    (isset($decodedResponse->errors) ? $decodedResponse->errors[0] : '')
-                )
-            ]
-        ]);
+        $errorMessage = Language::_(
+            'SoftaculousPlugin.script_no_installed',
+            true,
+            (isset($decodedResponse->error) ? json_encode($decodedResponse->error) : '')
+        );
+        $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
+        $this->logger->error($errorMessage);
         return false;
     }
 }

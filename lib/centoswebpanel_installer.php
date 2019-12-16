@@ -40,11 +40,9 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         $token = $autoLoginResponse->msj->details[0]->token;
 
         if (strtolower($autoLoginResponse->status) == 'error') {
-            $this->Input->setErrors([
-                'login' => [
-                    'invalid' => Language::_('SoftaculousPlugin.remote_error_message', true, $autoLoginResponse->msj)
-                ]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.remote_error_message', true, $autoLoginResponse->msj);
+            $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
             return;
         }
 
@@ -56,9 +54,9 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         );
         $loginResponse = json_decode($loginRaw);
         if ($loginResponse == null) {
-            $this->Input->setErrors([
-                'login' => ['invalid' => Language::_('SoftaculousPlugin.remote_error', true)]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.remote_error', true);
+            $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
             return;
         }
 
@@ -86,11 +84,9 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
 
         // Did we find the Script ?
         if (empty($sid)) {
-            $this->Input->setErrors([
-                'script_id' => [
-                    'invalid' => Language::_('SoftaculousPlugin.script_selected_error', true, $installationScript)
-                ]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.script_selected_error', true, $installationScript);
+            $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
             return;
         }
 
@@ -106,15 +102,13 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
             return true;
         }
 
-        $this->Input->setErrors([
-            'script_id' => [
-                'invalid' => Language::_(
-                    'SoftaculousPlugin.script_no_installed',
-                    true,
-                    (isset($decodedResponse->errors) ? $decodedResponse->errors[0] : '')
-                )
-            ]
-        ]);
+        $errorMessage = Language::_(
+            'SoftaculousPlugin.script_no_installed',
+            true,
+            (isset($decodedResponse->error) ? json_encode($decodedResponse->error) : '')
+        );
+        $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
+        $this->logger->error($errorMessage);
         return false;
     }
 
@@ -166,11 +160,8 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
 
         $error = curl_error($ch);
         if ($error !== '') {
-            $this->Input->setErrors([
-                'login' => [
-                    'invalid' => 'Could not login to the remote server. cURL Error : ' . $error
-                ]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.remote_curl_error', true, $error);
+            $this->logger->error($errorMessage);
             return;
         }
 

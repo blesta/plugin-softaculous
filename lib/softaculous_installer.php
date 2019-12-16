@@ -8,7 +8,8 @@ abstract class SoftactulousInstaller
      * @param stdClass $meta The module row meta data for the service
      * @return boolean Whether the script succeeded
      */
-    abstract public function install($service, $meta);
+    abstract public function install(stdClass $service, stdClass $meta);
+
     /**
      * Gets a list of scripts available in softaculous
      *
@@ -35,9 +36,7 @@ abstract class SoftactulousInstaller
         $error = curl_error($ch);
         if (!is_array($scripts)) {
             $this->Input->setErrors([
-                'no_script_list' => [
-                    'invalid' => 'Could not download list of scripts. ' . $error
-                ]
+                'no_script_list' => ['invalid' => Language::_('SoftaculousPlugin.no_script_list', true, $error)]
             ]);
         }
         $SoftaculousScripts = $scripts;
@@ -56,24 +55,24 @@ abstract class SoftactulousInstaller
      * @param array $data The data to send to cPanel
      * @return string 'installed' on success, an error message otherwise
      */
-    protected function scriptInstallRequest($sid, $login, $data)
+    protected function scriptInstallRequest($sid, $login, array $data)
     {
         @define('SOFTACULOUS', 1);
         $scripts = $this->softaculousScripts();
         if (empty($scripts[$sid])) {
             $this->Input->setErrors([
-                'no_script_loaded' => [
-                    'invalid' => 'List of scripts not loaded. Aborting Installation attempt!'
-                ]
+                'no_script_loaded' => ['invalid' => Language::_('SoftaculousPlugin.no_script_loaded', true)]
             ]);
             return;
         }
+
         // Add a Question mark if necessary
         if (substr_count($login, '?') < 1) {
             $login = $login . '?';
         } else {
             $login = $login . '&';
         }
+
         // Login PAGE
         if ($scripts[$sid]['type'] == 'js') {
             $login = $login . 'act=js&soft=' . $sid;
@@ -84,6 +83,7 @@ abstract class SoftactulousInstaller
         } else {
             $login = $login . 'act=software&soft=' . $sid;
         }
+
         $login = $login . '&autoinstall=' . rawurlencode(base64_encode(serialize($data)));
         // Set the curl parameters.
         $ch = curl_init();
@@ -98,6 +98,7 @@ abstract class SoftactulousInstaller
             curl_setopt($ch, CURLOPT_COOKIE, $this->cookie);
         }
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
         // Get response from the server.
         $resp = curl_exec($ch);
         $error = curl_error($ch);
@@ -105,7 +106,7 @@ abstract class SoftactulousInstaller
         if ($resp === false) {
             $this->Input->setErrors([
                 'script_not_installed' => [
-                    'invalid' => 'Installation not completed. cURL Error : ' . $error
+                    'invalid' => Language::_('SoftaculousPlugin.script_not_installed', true, $error)
                 ]
             ]);
         }

@@ -9,7 +9,7 @@ class CpanelInstaller extends SoftactulousInstaller
      * @param stdClass $meta The module row meta data for the service
      * @return boolean Whether the script succeeded
      */
-    public function install($service, $meta)
+    public function install(stdClass $service, stdClass $meta)
     {
         if (!isset($this->Clients)) {
             Loader::loadModels($this, ['Clients']);
@@ -55,9 +55,7 @@ class CpanelInstaller extends SoftactulousInstaller
         // Did we login ?
         if ($resp === false) {
             $this->Input->setErrors([
-                'login' => [
-                    'invalid' => 'Could not login to the remote server. cURL Error : ' . $error
-                ]
+                'login' => ['invalid' => Language::_('SoftaculousPlugin.remote_curl_error', true, $error)]
             ]);
             return;
         }
@@ -74,10 +72,7 @@ class CpanelInstaller extends SoftactulousInstaller
         // Did we login ?
         if (empty($path)) {
             $this->Input->setErrors([
-                'login' => [
-                    'invalid' => 'Could not determine the location of the Softaculous on the remote server.'
-                        . ' There could be a firewall preventing access.'
-                ]
+                'login' => ['invalid' => Language::_('SoftaculousPlugin.remote_firewall_error', true)]
             ]);
             return;
         }
@@ -105,8 +100,7 @@ class CpanelInstaller extends SoftactulousInstaller
         if (empty($sid)) {
             $this->Input->setErrors([
                 'script_id' => [
-                    'invalid' => 'Could not determine the script to be installed.'
-                    . ' Please make sure the script name is correct. Script Name : ' . $ins_script
+                    'invalid' => Language::_('SoftaculousPlugin.script_selected_error', true, $ins_script)
                 ]
             ]);
             return;
@@ -117,9 +111,7 @@ class CpanelInstaller extends SoftactulousInstaller
             return true;
         } else {
             $this->Input->setErrors([
-                'script_id' => [
-                    'invalid' => 'Could not install script: ' . $res
-                ]
+                'script_id' => ['invalid' => Language::_('SoftaculousPlugin.script_no_installed', true, $res)]
             ]);
             return false;
         }

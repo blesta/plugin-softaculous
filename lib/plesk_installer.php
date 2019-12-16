@@ -9,7 +9,7 @@ class PleskInstaller extends SoftactulousInstaller
      * @param stdClass $meta The module row meta data for the service
      * @return boolean Whether the script succeeded
      */
-    public function install($service, $meta)
+    public function install(stdClass $service, stdClass $meta)
     {
         if (!isset($this->Clients)) {
             Loader::loadModels($this, ['Clients']);
@@ -42,8 +42,7 @@ class PleskInstaller extends SoftactulousInstaller
         if (empty($sid)) {
             $this->Input->setErrors([
                 'script_id' => [
-                    'invalid' => 'Could not determine the script to be installed.'
-                    . ' Please make sure the script name is correct. Script Name : ' . $installationScript
+                    'invalid' => Language::_('SoftaculousPlugin.script_selected_error', true, $installationScript)
                 ]
             ]);
             return;
@@ -69,7 +68,11 @@ class PleskInstaller extends SoftactulousInstaller
             $messages = unserialize($response);
             $this->Input->setErrors([
                 'script_id' => [
-                    'invalid' => 'Could not install script: ' . ($messages ? $messages[0] : $response)
+                    'invalid' => Language::_(
+                        'SoftaculousPlugin.script_no_installed',
+                        true,
+                        ($messages ? $messages[0] : $response)
+                    )
                 ]
             ]);
             return false;
@@ -84,7 +87,7 @@ class PleskInstaller extends SoftactulousInstaller
      * @param string $method Http request method (GET, DELETE, POST)
      * @return string An json formatted string containing the response
      */
-    private function post($post, $url, $method = 'GET')
+    private function post(array $post, $url, $method = 'GET')
     {
         $ch = curl_init();
         // Set the request method and parameters

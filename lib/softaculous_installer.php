@@ -2,6 +2,22 @@
 abstract class SoftactulousInstaller
 {
     /**
+     * @var Monolog\Logger An instance of the logger
+     */
+    protected $logger;
+
+    /**
+     * The installer constructor
+     *
+     * @param Monolog\Logger $logger An instance of the logger
+     */
+    public function __construct($logger)
+    {
+        Loader::loadComponents($this, ['Input']);
+        $this->logger = $logger;
+    }
+
+    /**
      * Validates informations and runs a softaculous installation script on the given web panel
      *
      * @param stdClass $service An object representing the web panel service to execute a script for
@@ -39,9 +55,9 @@ abstract class SoftactulousInstaller
         $error = curl_error($ch);
 
         if (!is_array($scripts)) {
-            $this->Input->setErrors([
-                'no_script_list' => ['invalid' => Language::_('SoftaculousPlugin.no_script_list', true, $error)]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.no_script_list', true);
+            $this->Input->setErrors(['no_script_list' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
         }
 
         $SoftaculousScripts = $scripts;
@@ -67,32 +83,22 @@ abstract class SoftactulousInstaller
 
         $scripts = $this->softaculousScripts();
         if (empty($scripts[$sid])) {
-            $this->Input->setErrors([
-                'no_script_loaded' => ['invalid' => Language::_('SoftaculousPlugin.no_script_loaded', true)]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.no_script_loaded', true);
+            $this->Input->setErrors(['no_script_loaded' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
             return;
         }
 
         // Add a Question mark if necessary
-        if (substr_count($login, '?') < 1) {
-            $login = $login . '?';
-        } else {
-            $login = $login . '&';
-        }
-
+        $login .= substr_count($login, '?') < 1 ?  '?' : '&';
         // Login PAGE
-        if ($scripts[$sid]['type'] == 'js') {
-            $login = $login . 'act=js&soft=' . $sid;
-        } elseif ($scripts[$sid]['type'] == 'perl') {
-            $login = $login . 'act=perl&soft=' . $sid;
-        } elseif ($scripts[$sid]['type'] == 'java') {
-            $login = $login . 'act=java&soft=' . $sid;
+        if (in_array($scripts[$sid]['type'], ['js', 'perl', 'java'])) {
+            $login .= 'act=js' . $scripts[$sid]['type'];
         } else {
-            $login = $login . 'act=software&soft=' . $sid;
+            $login .= 'act=software';
         }
 
-        $login = $login . '&autoinstall=' . rawurlencode(base64_encode(serialize($data)));
-
+        $login = $login . '&api=json&soft=' . $sid . '&autoinstall=' . rawurlencode(base64_encode(serialize($data)));
         // Set the curl parameters.
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $login);
@@ -114,11 +120,9 @@ abstract class SoftactulousInstaller
         $error = curl_error($ch);
         // Did we reach out to that place ?
         if ($resp === false) {
-            $this->Input->setErrors([
-                'script_not_installed' => [
-                    'invalid' => Language::_('SoftaculousPlugin.script_not_installed', true, $error)
-                ]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.script_not_installed', true);
+            $this->Input->setErrors(['script_not_installed' => ['invalid' => $error]]);
+            $this->logger->error($errorMessage);
         }
 
         curl_close($ch);

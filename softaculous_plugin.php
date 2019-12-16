@@ -1,6 +1,9 @@
 <?php
+use Blesta\Core\Util\Common\Traits\Container;
 class SoftaculousPlugin extends Plugin
 {
+    // Load traits
+    use Container;
     public function __construct()
     {
         Language::loadLang('softaculous', null, dirname(__FILE__) . DS . 'language' . DS);
@@ -102,12 +105,14 @@ class SoftaculousPlugin extends Plugin
             return $this->{$class_name};
         }
 
-		$file_name = dirname(__FILE__) . DS . 'lib' . DS . $panel_name . '_installer.php';
-
-		// Load the library requested
-		include_once $file_name;
-
-        $this->{$class_name} = new $class_name();
-        return $this->{$class_name};
+        if (file_exists($file_name)) {
+            // Load the library requested
+            include_once $file_name;
+            $logger = $this->getFromContainer('logger');
+            $this->{$class_name} = new $class_name($logger);
+            return $this->{$class_name};
+        } else {
+            throw new Exception('Unable to load library');
+        }
 	}
 }

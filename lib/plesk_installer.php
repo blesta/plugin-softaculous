@@ -40,11 +40,9 @@ class PleskInstaller extends SoftactulousInstaller
         }
         // Did we find the Script ?
         if (empty($sid)) {
-            $this->Input->setErrors([
-                'script_id' => [
-                    'invalid' => Language::_('SoftaculousPlugin.script_selected_error', true, $installationScript)
-                ]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.script_selected_error', true, $installationScript);
+            $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
             return;
         }
 
@@ -66,16 +64,18 @@ class PleskInstaller extends SoftactulousInstaller
             return true;
         }
 
-        $messages = unserialize($response);
-        $this->Input->setErrors([
-            'script_id' => [
-                'invalid' => Language::_(
-                    'SoftaculousPlugin.script_no_installed',
-                    true,
-                    ($messages ? $messages[0] : $response)
-                )
-            ]
-        ]);
+        $decodedResponse = json_decode($response);
+        if (isset($decodedResponse->done) && $decodedResponse->done) {
+            return true;
+        }
+
+        $errorMessage = Language::_(
+            'SoftaculousPlugin.script_no_installed',
+            true,
+            (isset($decodedResponse->error) ? json_encode($decodedResponse->error) : '')
+        );
+        $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
+        $this->logger->error($errorMessage);
         return false;
     }
 
@@ -122,11 +122,8 @@ class PleskInstaller extends SoftactulousInstaller
         $this->setCookie($response);
         $error = curl_error($ch);
         if ($error !== '') {
-            $this->Input->setErrors([
-                'login' => [
-                    'invalid' => 'Could not login to the remote server. cURL Error : ' . $error
-                ]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.remote_curl_error', true, $error);
+            $this->logger->error($errorMessage);
             return;
         }
 

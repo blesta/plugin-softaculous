@@ -40,20 +40,16 @@ abstract class SoftactulousInstaller
 
         if (!is_array($scripts)) {
             $this->Input->setErrors([
-                'no_script_list' => [
-                    'invalid' => 'Could not download list of scripts. ' . $error
-                ]
+                'no_script_list' => ['invalid' => Language::_('SoftaculousPlugin.no_script_list', true, $error)]
             ]);
         }
 
         $SoftaculousScripts = $scripts;
-
         if (is_array($add_SoftaculousScripts)) {
             foreach ($add_SoftaculousScripts as $k => $v) {
                 $SoftaculousScripts[$k] = $v;
             }
         }
-
         return $SoftaculousScripts;
     }
 
@@ -65,17 +61,14 @@ abstract class SoftactulousInstaller
      * @param array $data The data to send to cPanel
      * @return string 'installed' on success, an error message otherwise
      */
-    protected function scriptInstallRequest($sid, $login, $data)
+    protected function scriptInstallRequest($sid, $login, array $data)
     {
         @define('SOFTACULOUS', 1);
 
         $scripts = $this->softaculousScripts();
-
         if (empty($scripts[$sid])) {
             $this->Input->setErrors([
-                'no_script_loaded' => [
-                    'invalid' => 'List of scripts not loaded. Aborting Installation attempt!'
-                ]
+                'no_script_loaded' => ['invalid' => Language::_('SoftaculousPlugin.no_script_loaded', true)]
             ]);
             return;
         }
@@ -114,7 +107,6 @@ abstract class SoftactulousInstaller
             curl_setopt($ch, CURLOPT_COOKIESESSION, true);
             curl_setopt($ch, CURLOPT_COOKIE, $this->cookie);
         }
-
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
         // Get response from the server.
@@ -124,7 +116,7 @@ abstract class SoftactulousInstaller
         if ($resp === false) {
             $this->Input->setErrors([
                 'script_not_installed' => [
-                    'invalid' => 'Installation not completed. cURL Error : ' . $error
+                    'invalid' => Language::_('SoftaculousPlugin.script_not_installed', true, $error)
                 ]
             ]);
         }

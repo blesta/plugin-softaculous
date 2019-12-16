@@ -52,6 +52,7 @@ abstract class SoftactulousInstaller
         }
         return $SoftaculousScripts;
     }
+
     /**
      * Sends the installation request to cPanel
      *

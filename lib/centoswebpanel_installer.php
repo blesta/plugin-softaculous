@@ -42,7 +42,7 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         if (strtolower($autoLoginResponse->status) == 'error') {
             $this->Input->setErrors([
                 'login' => [
-                    'invalid' => 'Could not login to the remote server. Error : ' . $autoLoginResponse->msj
+                    'invalid' => Language::_('SoftaculousPlugin.remote_error_message', true, $autoLoginResponse->msj)
                 ]
             ]);
             return;
@@ -57,9 +57,7 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         $loginResponse = json_decode($loginRaw);
         if ($loginResponse == null) {
             $this->Input->setErrors([
-                'login' => [
-                    'invalid' => 'Could not login to the remote server.'
-                ]
+                'login' => ['invalid' => Language::_('SoftaculousPlugin.remote_error', true)]
             ]);
             return;
         }
@@ -90,8 +88,7 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         if (empty($sid)) {
             $this->Input->setErrors([
                 'script_id' => [
-                    'invalid' => 'Could not determine the script to be installed.'
-                    . ' Please make sure the script name is correct. Script Name : ' . $installationScript
+                    'invalid' => Language::_('SoftaculousPlugin.script_selected_error', true, $installationScript)
                 ]
             ]);
             return;
@@ -107,15 +104,19 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
 
         if ('installed' == strtolower($response)) {
             return true;
-        } else {
-            $messages = unserialize($response);
-            $this->Input->setErrors([
-                'script_id' => [
-                    'invalid' => 'Could not install script: ' . ($messages ? $messages[0] : $response)
-                ]
-            ]);
-            return false;
         }
+
+        $messages = unserialize($response);
+        $this->Input->setErrors([
+            'script_id' => [
+                'invalid' => Language::_(
+                    'SoftaculousPlugin.script_no_installed',
+                    true,
+                    ($messages ? $messages[0] : $response)
+                )
+            ]
+        ]);
+        return false;
     }
 
     /**

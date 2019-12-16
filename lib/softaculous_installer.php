@@ -8,7 +8,7 @@ abstract class SoftactulousInstaller
      * @param stdClass $meta The module row meta data for the service
      * @return boolean Whether the script succeeded
      */
-    abstract public function install($service, $meta);
+    abstract public function install(stdClass $service, stdClass $meta);
 
     /**
      * Gets a list of scripts available in softaculous

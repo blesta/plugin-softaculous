@@ -131,15 +131,21 @@ class CpanelInstaller extends SoftactulousInstaller
             return;
         }
 
-        $res = $this->scriptInstallRequest($sid, $login, $data); // Will install the script
-        $res = trim($res);
-        if (preg_match('/installed/is', $res)) {
+        $response = $this->scriptInstallRequest($sid, $login, $data); // Will install the script
+        $decodedResponse = json_decode($response);
+        if (isset($decodedResponse->done) && $decodedResponse->done) {
             return true;
-        } else {
-            $this->Input->setErrors([
-                'script_id' => ['invalid' => Language::_('SoftaculousPlugin.script_no_installed', true, $res)]
-            ]);
-            return false;
         }
+
+        $this->Input->setErrors([
+            'script_id' => [
+                'invalid' => Language::_(
+                    'SoftaculousPlugin.script_no_installed',
+                    true,
+                    (isset($decodedResponse->errors) ? $decodedResponse->errors[0] : '')
+                )
+            ]
+        ]);
+        return false;
     }
 }

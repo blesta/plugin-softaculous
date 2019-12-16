@@ -74,24 +74,16 @@ abstract class SoftactulousInstaller
         }
 
         // Add a Question mark if necessary
-        if (substr_count($login, '?') < 1) {
-            $login = $login . '?';
-        } else {
-            $login = $login . '&';
-        }
+        $login .= substr_count($login, '?') < 1 ?  '?' : '&';
 
         // Login PAGE
-        if ($scripts[$sid]['type'] == 'js') {
-            $login = $login . 'act=js&soft=' . $sid;
-        } elseif ($scripts[$sid]['type'] == 'perl') {
-            $login = $login . 'act=perl&soft=' . $sid;
-        } elseif ($scripts[$sid]['type'] == 'java') {
-            $login = $login . 'act=java&soft=' . $sid;
+        if (in_array($scripts[$sid]['type'], ['js', 'perl', 'java'])) {
+            $login .= 'act=js' . $scripts[$sid]['type'];
         } else {
-            $login = $login . 'act=software&soft=' . $sid;
+            $login .= 'act=software';
         }
 
-        $login = $login . '&autoinstall=' . rawurlencode(base64_encode(serialize($data)));
+        $login = $login . '&api=json&soft=' . $sid . '&autoinstall=' . rawurlencode(base64_encode(serialize($data)));
 
         // Set the curl parameters.
         $ch = curl_init();

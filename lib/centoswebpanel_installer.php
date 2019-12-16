@@ -101,18 +101,17 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
             $data
         );
 
-
-        if ('installed' == strtolower($response)) {
+        $decodedResponse = json_decode($response);
+        if (isset($decodedResponse->done) && $decodedResponse->done) {
             return true;
         }
 
-        $messages = unserialize($response);
         $this->Input->setErrors([
             'script_id' => [
                 'invalid' => Language::_(
                     'SoftaculousPlugin.script_no_installed',
                     true,
-                    ($messages ? $messages[0] : $response)
+                    (isset($decodedResponse->errors) ? $decodedResponse->errors[0] : '')
                 )
             ]
         ]);

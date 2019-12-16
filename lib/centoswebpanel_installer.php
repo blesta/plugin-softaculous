@@ -127,7 +127,7 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
      * @param string $method Http request method (GET, DELETE, POST)
      * @return string An json formatted string containing the response
      */
-    private function post($post, $url, $method = 'GET')
+    private function post(array $post, $url, $method = 'GET')
     {
         $ch = curl_init();
 

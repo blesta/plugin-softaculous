@@ -66,9 +66,9 @@ class SoftaculousPlugin extends Plugin
                 $installer = $this->loadInstaller($module_info->class);
                 $installer->install($service, $module_row->meta);
             } catch (Throwable $e) {
-                throw new Exception('Unable to load library');
+                throw new Exception(Language::_('SoftaculousPlugin.library_error', true));
             } catch (Exception $e) {
-                throw new Exception('Unable to load library');
+                throw new Exception(Language::_('SoftaculousPlugin.library_error', true));
             }
         }
     }
@@ -105,6 +105,8 @@ class SoftaculousPlugin extends Plugin
             return $this->{$class_name};
         }
 
+		$file_name = dirname(__FILE__) . DS . 'lib' . DS . $panel_name . '_installer.php';
+
         if (file_exists($file_name)) {
             // Load the library requested
             include_once $file_name;
@@ -112,7 +114,7 @@ class SoftaculousPlugin extends Plugin
             $this->{$class_name} = new $class_name($logger);
             return $this->{$class_name};
         } else {
-            throw new Exception('Unable to load library');
+            throw new Exception(Language::_('SoftaculousPlugin.library_error', true));
         }
 	}
 }

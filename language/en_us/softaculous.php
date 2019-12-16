@@ -1,6 +1,7 @@
 <?php
 // Plugin name
 $lang['SoftaculousPlugin.name'] = "Soft Auto Installer";
+$lang['SoftaculousPlugin.library_error'] = 'Unable to load library.';
 $lang['SoftaculousPlugin.remote_error'] = 'Could not login to the remote server.';
 $lang['SoftaculousPlugin.remote_error_message'] = 'Could not login to the remote server. Error: %1$s'; // %1$s is the error
 $lang['SoftaculousPlugin.remote_curl_error'] = 'Could not login to the remote server. cURL Error: %1$s'; // %1$s is the curl error

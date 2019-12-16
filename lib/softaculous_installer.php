@@ -55,9 +55,9 @@ abstract class SoftactulousInstaller
         $error = curl_error($ch);
 
         if (!is_array($scripts)) {
-            $this->Input->setErrors([
-                'no_script_list' => ['invalid' => Language::_('SoftaculousPlugin.no_script_list', true, $error)]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.no_script_list', true);
+            $this->Input->setErrors(['no_script_list' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
         }
 
         $SoftaculousScripts = $scripts;
@@ -83,9 +83,9 @@ abstract class SoftactulousInstaller
 
         $scripts = $this->softaculousScripts();
         if (empty($scripts[$sid])) {
-            $this->Input->setErrors([
-                'no_script_loaded' => ['invalid' => Language::_('SoftaculousPlugin.no_script_loaded', true)]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.no_script_loaded', true);
+            $this->Input->setErrors(['no_script_loaded' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
             return;
         }
 
@@ -122,11 +122,9 @@ abstract class SoftactulousInstaller
         $error = curl_error($ch);
         // Did we reach out to that place ?
         if ($resp === false) {
-            $this->Input->setErrors([
-                'script_not_installed' => [
-                    'invalid' => Language::_('SoftaculousPlugin.script_not_installed', true, $error)
-                ]
-            ]);
+            $errorMessage = Language::_('SoftaculousPlugin.script_not_installed', true);
+            $this->Input->setErrors(['script_not_installed' => ['invalid' => $error]]);
+            $this->logger->error($errorMessage);
         }
 
         curl_close($ch);

@@ -20,9 +20,11 @@ abstract class SoftactulousInstaller
     protected function softaculousScripts()
     {
         global $SoftaculousScripts, $add_SoftaculousScripts;
+
         // Set the curl parameters.
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, 'https://api.softaculous.com/scripts.php?in=serialize');
+
         // Turn off the server and peer verification (TrustManager Concept).
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
@@ -30,15 +32,18 @@ abstract class SoftactulousInstaller
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         //curl_setopt($ch, CURLOPT_SSL_CIPHER_LIST, 'RC4-SHA:RC4-MD5');
         // This is becuase some servers cannot access https without this
+
         // Get response from the server
         $resp = curl_exec($ch);
         $scripts = unserialize($resp);
         $error = curl_error($ch);
+
         if (!is_array($scripts)) {
             $this->Input->setErrors([
                 'no_script_list' => ['invalid' => Language::_('SoftaculousPlugin.no_script_list', true, $error)]
             ]);
         }
+
         $SoftaculousScripts = $scripts;
         if (is_array($add_SoftaculousScripts)) {
             foreach ($add_SoftaculousScripts as $k => $v) {
@@ -58,6 +63,7 @@ abstract class SoftactulousInstaller
     protected function scriptInstallRequest($sid, $login, array $data)
     {
         @define('SOFTACULOUS', 1);
+
         $scripts = $this->softaculousScripts();
         if (empty($scripts[$sid])) {
             $this->Input->setErrors([
@@ -85,13 +91,16 @@ abstract class SoftactulousInstaller
         }
 
         $login = $login . '&autoinstall=' . rawurlencode(base64_encode(serialize($data)));
+
         // Set the curl parameters.
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $login);
+
         // Turn off the server and peer verification (TrustManager Concept).
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_HEADER, false);
+
         // Is there a Cookie
         if (!empty($this->cookie)) {
             curl_setopt($ch, CURLOPT_COOKIESESSION, true);
@@ -110,6 +119,7 @@ abstract class SoftactulousInstaller
                 ]
             ]);
         }
+
         curl_close($ch);
         return $resp;
     }

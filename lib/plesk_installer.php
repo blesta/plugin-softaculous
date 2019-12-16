@@ -64,19 +64,19 @@ class PleskInstaller extends SoftactulousInstaller
         );
         if ('installed' == strtolower($response)) {
             return true;
-        } else {
-            $messages = unserialize($response);
-            $this->Input->setErrors([
-                'script_id' => [
-                    'invalid' => Language::_(
-                        'SoftaculousPlugin.script_no_installed',
-                        true,
-                        ($messages ? $messages[0] : $response)
-                    )
-                ]
-            ]);
-            return false;
         }
+
+        $messages = unserialize($response);
+        $this->Input->setErrors([
+            'script_id' => [
+                'invalid' => Language::_(
+                    'SoftaculousPlugin.script_no_installed',
+                    true,
+                    ($messages ? $messages[0] : $response)
+                )
+            ]
+        ]);
+        return false;
     }
 
     /**
@@ -105,14 +105,18 @@ class PleskInstaller extends SoftactulousInstaller
         }
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_VERBOSE, 0);
+
         // Turn off the server and peer verification (TrustManager Concept).
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
         // Create new session cookies
         curl_setopt($ch, CURLOPT_COOKIESESSION, true);
+
         // Check the Header
         curl_setopt($ch, CURLOPT_HEADER, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
         // Get response from the server.
         $response = curl_exec($ch);
         $this->setCookie($response);
@@ -125,6 +129,7 @@ class PleskInstaller extends SoftactulousInstaller
             ]);
             return;
         }
+
         $curlInfo = curl_getinfo($ch);
         curl_close($ch);
 

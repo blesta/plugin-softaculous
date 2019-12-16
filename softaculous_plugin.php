@@ -44,7 +44,8 @@ class SoftaculousPlugin extends Plugin
         $module_info = $this->getModuleClassByPricingId($par['vars']['pricing_id']);
 
         // Make sure the service is being activated at this time
-        $service_activated = $par['vars']['status'] == 'active'
+        $service_activated = isset($par['vars']['status'])
+            && $par['vars']['status'] == 'active'
             && ($event->getName() == 'Services.add'
                 || ($event->getName() == 'Services.edit'
                     && in_array($par['old_service']->status, ['pending', 'in_review'])

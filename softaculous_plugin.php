@@ -57,7 +57,7 @@ class SoftaculousPlugin extends Plugin
 
         // This plugin only supports the follwing modules: cPanel and CentOS Web Panel
         $accepted_modules = ['cpanel', 'centoswebpanel'];
-        if (true||$service_activated && $module_info && in_array($module_info->class, $accepted_modules)) {
+        if ($service_activated && $module_info && in_array($module_info->class, $accepted_modules)) {
             // Fetch necessary data
             $service = $this->Services->get($par['service_id']);
             $module_row = $this->ModuleManager->getRow($service->module_row_id);

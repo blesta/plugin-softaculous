@@ -27,11 +27,13 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         // Login and get the cookies
         $autoLoginData = [
             'action' => 'list',
-            'key' => $meta->api_key,
-            'user' => $serviceFields['centoswebpanel_username'],
+            'key' => isset($meta->api_key) ? $meta->api_key : '',
+            'user' => isset($serviceFields['centoswebpanel_username']) ? $serviceFields['centoswebpanel_username'] : '',
             'module' => 'softaculous'
         ];
-        $autoLoginUrl = 'https://' . $meta->host_name . ':' . $meta->port . '/v1/user_session';
+        $hostName = isset($meta->host_name) ? $meta->host_name : '';
+        $port = isset($meta->port) ? $meta->port : '';
+        $autoLoginUrl = 'https://' . $hostName . ':' . $port . '/v1/user_session';
         $autoLoginRaw = $this->post($autoLoginData, $autoLoginUrl, 'POST');
         $autoLoginResponse = json_decode($autoLoginRaw);
         if ($autoLoginResponse == null || !isset($autoLoginResponse->msj->details[0]->token)) {
@@ -49,7 +51,7 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         $loginData = ['username' => $serviceFields['centoswebpanel_username'], 'token' => $token];
         $loginRaw = $this->post(
             $loginData,
-            'https://' . $meta->host_name . ':2083/' . $serviceFields['centoswebpanel_username'] . '/',
+            'https://' . $hostName . ':2083/' . $serviceFields['centoswebpanel_username'] . '/',
             'POST'
         );
         $loginResponse = json_decode($loginRaw);
@@ -62,17 +64,19 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
 
         // Make the Login system
         $data = [
-            'softdomain' => $serviceFields['centoswebpanel_domain'],
+            'softdomain' => (!empty($serviceFields['centoswebpanel_domain'])
+                ? $serviceFields['centoswebpanel_domain']
+                : ''),
             // OPTIONAL - By default it will be installed in the /public_html folder
             'softdirectory' => (!empty($configOptions['directory']) ? $configOptions['directory'] : ''),
-            'admin_username' => $configOptions['admin_name'],
-            'admin_pass' => $configOptions['admin_pass'],
+            'admin_username' => isset($configOptions['admin_name']) ? $configOptions['admin_name'] : '',
+            'admin_pass' => isset($configOptions['admin_pass']) ? $configOptions['admin_pass'] : '',
             'admin_email' => $client->email
         ];
 
         // List of Scripts
         $scripts = $this->softaculousScripts();
-        $installationScript = $configOptions['script'];
+        $installationScript = isset($configOptions['script']) ? $configOptions['script'] : '';
 
         // Which Script are we to install ?
         foreach ($scripts as $key => $value) {
@@ -93,19 +97,18 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         // Install the script
         $response = $this->scriptInstallRequest(
             $sid,
-            $loginResponse->redirect_url,
+            isset($loginResponse->redirect_url) ? $loginResponse->redirect_url : '',
             $data
         );
 
-        $decodedResponse = json_decode($response);
-        if (isset($decodedResponse->done) && $decodedResponse->done) {
+        if (isset($response->done) && $response->done) {
             return true;
         }
 
         $errorMessage = Language::_(
             'SoftaculousPlugin.script_no_installed',
             true,
-            (isset($decodedResponse->error) ? json_encode($decodedResponse->error) : '')
+            (isset($response->error) ? json_encode($response->error) : '')
         );
         $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
         $this->logger->error($errorMessage);

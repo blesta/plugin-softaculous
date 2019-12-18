@@ -39,8 +39,7 @@ class CpanelInstaller extends SoftactulousInstaller
                 'goto_uri' => '/'];
 
         curl_setopt($ch, CURLOPT_POST, 1);
-        $nvpreq = http_build_query($post);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $nvpreq);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post));
 
         // Check the Header
         curl_setopt($ch, CURLOPT_HEADER, 1);
@@ -55,11 +54,9 @@ class CpanelInstaller extends SoftactulousInstaller
         }
 
         if (empty($no_follow_location)) {
-            // Follow redirects
+            // Do not follow redirects
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
         }
-
-        //curl_setopt($ch, CURLOPT_COOKIEJAR, '-');
 
         // Get response from the server.
         $resp = curl_exec($ch);
@@ -76,14 +73,15 @@ class CpanelInstaller extends SoftactulousInstaller
         // Get the cpsess and path to frontend theme
         $curl_info = curl_getinfo($ch);
 
+        $parsed = ['path' => ''];
         if (!empty($curl_info['redirect_url'])) {
             $parsed = parse_url($curl_info['redirect_url']);
-        } else {
+        } elseif (!empty($curl_info['url'])) {
             $parsed = parse_url($curl_info['url']);
         }
 
         $path = trim(dirname($parsed['path']));
-        $path = ($path{0} == '/' ? $path : '/' . $path);
+        $path = rtrim($path[0] == '/' ? $path : '/' . $path, '/');
 
         curl_close($ch);
 
@@ -130,15 +128,14 @@ class CpanelInstaller extends SoftactulousInstaller
         }
 
         $response = $this->scriptInstallRequest($sid, $login, $data); // Will install the script
-        $decodedResponse = json_decode($response);
-        if (isset($decodedResponse->done) && $decodedResponse->done) {
+        if (isset($response->done) && $response->done) {
             return true;
         }
 
         $errorMessage = Language::_(
             'SoftaculousPlugin.script_no_installed',
             true,
-            (isset($decodedResponse->error) ? json_encode($decodedResponse->error) : '')
+            (isset($response->error) ? json_encode($response->error) : '')
         );
         $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
         $this->logger->error($errorMessage);

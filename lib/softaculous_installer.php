@@ -121,13 +121,13 @@ abstract class SoftactulousInstaller
         $resp = curl_exec($ch);
         $error = curl_error($ch);
         // Did we reach out to that place ?
-        if ($resp === false) {
+        if ($resp === false || $resp === null) {
             $errorMessage = Language::_('SoftaculousPlugin.script_not_installed', true);
             $this->Input->setErrors(['script_not_installed' => ['invalid' => $error]]);
             $this->logger->error($errorMessage);
         }
 
         curl_close($ch);
-        return $resp;
+        return json_decode($resp);
     }
 }

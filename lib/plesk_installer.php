@@ -33,50 +33,11 @@ class PleskInstaller extends SoftactulousInstaller
         $loginUrl = 'https://' . $hostName . ':' . $port . '/login_up.php3';
         $this->post($loginData, $loginUrl, 'POST');
 
-        // List of Scripts
-        $scripts = $this->softaculousScripts();
-        $installationScript = (!empty($configOptions['script']) ? $configOptions['script'] : '');
-        // Which Script are we to install ?
-        foreach ($scripts as $key => $value) {
-            if (trim(strtolower($value['name'])) == trim(strtolower($installationScript))) {
-                $sid = $key;
-                break;
-            }
-        }
-        // Did we find the Script ?
-        if (empty($sid)) {
-            $errorMessage = Language::_('SoftaculousPlugin.script_selected_error', true, $installationScript);
-            $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
-            $this->logger->error($errorMessage);
-            return;
-        }
-
-        // Install the script
-        $data = [
-            'softdomain' => (!empty($serviceFields['plesk_domain']) ? $serviceFields['plesk_domain'] : ''),
-            // OPTIONAL - By default it will be installed in the /public_html folder
-            'softdirectory' => (!empty($configOptions['directory']) ? $configOptions['directory'] : ''),
-            'admin_username' => (!empty($configOptions['admin_name']) ? $configOptions['admin_name'] : ''),
-            'admin_pass' => (!empty($configOptions['admin_pass']) ? $configOptions['admin_pass'] : ''),
-            'admin_email' => $client->email
-        ];
-        $response = $this->scriptInstallRequest(
-            $sid,
+        return $this->installScript(
+            (!empty($serviceFields['plesk_domain']) ? $serviceFields['plesk_domain'] : ''),
+            $client->email,
             'https://' . $hostName . ':' . $port . '/modules/softaculous/index.php',
-            $data
+            $configOptions
         );
-
-        if (isset($response->done) && $response->done) {
-            return true;
-        }
-
-        $errorMessage = Language::_(
-            'SoftaculousPlugin.script_no_installed',
-            true,
-            (isset($response->error) ? json_encode($response->error) : '')
-        );
-        $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
-        $this->logger->error($errorMessage);
-        return false;
     }
 }

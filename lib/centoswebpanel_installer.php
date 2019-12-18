@@ -34,8 +34,7 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         $hostName = isset($meta->host_name) ? $meta->host_name : '';
         $port = isset($meta->port) ? $meta->port : '';
         $autoLoginUrl = 'https://' . $hostName . ':' . $port . '/v1/user_session';
-        $autoLoginRaw = $this->post($autoLoginData, $autoLoginUrl, 'POST');
-        $autoLoginResponse = json_decode($autoLoginRaw);
+        $autoLoginResponse = $this->post($autoLoginData, $autoLoginUrl, 'POST');
         if ($autoLoginResponse == null || !isset($autoLoginResponse->msj->details[0]->token)) {
             return;
         }
@@ -49,12 +48,11 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         }
 
         $loginData = ['username' => $serviceFields['centoswebpanel_username'], 'token' => $token];
-        $loginRaw = $this->post(
+        $loginResponse = $this->post(
             $loginData,
             'https://' . $hostName . ':2083/' . $serviceFields['centoswebpanel_username'] . '/',
             'POST'
         );
-        $loginResponse = json_decode($loginRaw);
         if ($loginResponse == null) {
             $errorMessage = Language::_('SoftaculousPlugin.remote_error', true);
             $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
@@ -62,56 +60,11 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
             return;
         }
 
-        // Make the Login system
-        $data = [
-            'softdomain' => (!empty($serviceFields['centoswebpanel_domain'])
-                ? $serviceFields['centoswebpanel_domain']
-                : ''),
-            // OPTIONAL - By default it will be installed in the /public_html folder
-            'softdirectory' => (!empty($configOptions['directory']) ? $configOptions['directory'] : ''),
-            'admin_username' => isset($configOptions['admin_name']) ? $configOptions['admin_name'] : '',
-            'admin_pass' => isset($configOptions['admin_pass']) ? $configOptions['admin_pass'] : '',
-            'admin_email' => $client->email
-        ];
-
-        // List of Scripts
-        $scripts = $this->softaculousScripts();
-        $installationScript = isset($configOptions['script']) ? $configOptions['script'] : '';
-
-        // Which Script are we to install ?
-        foreach ($scripts as $key => $value) {
-            if (trim(strtolower($value['name'])) == trim(strtolower($installationScript))) {
-                $sid = $key;
-                break;
-            }
-        }
-
-        // Did we find the Script ?
-        if (empty($sid)) {
-            $errorMessage = Language::_('SoftaculousPlugin.script_selected_error', true, $installationScript);
-            $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
-            $this->logger->error($errorMessage);
-            return;
-        }
-
-        // Install the script
-        $response = $this->scriptInstallRequest(
-            $sid,
-            isset($loginResponse->redirect_url) ? $loginResponse->redirect_url : '',
-            $data
+        return $this->installScript(
+            (!empty($serviceFields['centoswebpanel_domain']) ? $serviceFields['centoswebpanel_domain'] : ''),
+            $client->email,
+            $loginResponse->redirect_url,
+            $configOptions
         );
-
-        if (isset($response->done) && $response->done) {
-            return true;
-        }
-
-        $errorMessage = Language::_(
-            'SoftaculousPlugin.script_no_installed',
-            true,
-            (isset($response->error) ? json_encode($response->error) : '')
-        );
-        $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
-        $this->logger->error($errorMessage);
-        return false;
     }
 }

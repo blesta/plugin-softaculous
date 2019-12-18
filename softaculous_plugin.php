@@ -61,9 +61,9 @@ class SoftaculousPlugin extends Plugin
             // Fetch necessary data
             $service = $this->Services->get($par['service_id']);
             $module_row = $this->ModuleManager->getRow($service->module_row_id);
-
             try {
                 $installer = $this->loadInstaller($module_info->class);
+
                 $installer->install($service, $module_row->meta);
             } catch (Throwable $e) {
                 throw new Exception(Language::_('SoftaculousPlugin.library_error', true));
@@ -94,27 +94,29 @@ class SoftaculousPlugin extends Plugin
     }
 
     /**
-	 * Loads the given library into this object
-	 *
-	 * @param string $panel_name The panel to load an installer for
+     * Loads the given library into this object
+     *
+     * @param string $panel_name The panel to load an installer for
      * @return SoftaculousInstaller
-	 */
-	private function loadInstaller($panel_name) {
+     */
+    private function loadInstaller($panel_name)
+    {
         $class_name = ucwords($panel_name) . 'Installer';
         if (isset($this->{$class_name})) {
             return $this->{$class_name};
         }
 
-		$file_name = dirname(__FILE__) . DS . 'lib' . DS . $panel_name . '_installer.php';
+        $file_name = dirname(__FILE__) . DS . 'lib' . DS . $panel_name . '_installer.php';
 
         if (file_exists($file_name)) {
             // Load the library requested
             include_once $file_name;
+
             $logger = $this->getFromContainer('logger');
             $this->{$class_name} = new $class_name($logger);
             return $this->{$class_name};
         } else {
             throw new Exception(Language::_('SoftaculousPlugin.library_error', true));
         }
-	}
+    }
 }

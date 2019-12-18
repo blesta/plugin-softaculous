@@ -126,6 +126,6 @@ abstract class SoftactulousInstaller
         }
 
         curl_close($ch);
-        return $resp;
+        return json_decode($resp);
     }
 }

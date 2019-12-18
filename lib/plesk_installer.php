@@ -24,13 +24,18 @@ class PleskInstaller extends SoftactulousInstaller
         $client = $this->Clients->get($service->client_id);
 
         // Login and get the cookies
-        $loginData = ['login_name' => $meta->username, 'passwd' => $meta->password];
-        $loginUrl = 'https://' . $meta->host_name . ':' . $meta->port . '/login_up.php3';
+        $loginData = [
+            'login_name' => isset($meta->username) ? $meta->username : '',
+            'passwd' => isset($meta->password) ? $meta->password : ''
+        ];
+        $hostName = isset($meta->host_name) ? $meta->host_name : '';
+        $port = isset($meta->port) ? $meta->port : '';
+        $loginUrl = 'https://' . $hostName . ':' . $port . '/login_up.php3';
         $this->post($loginData, $loginUrl, 'POST');
 
         // List of Scripts
         $scripts = $this->softaculousScripts();
-        $installationScript = $configOptions['script'];
+        $installationScript = (!empty($configOptions['script']) ? $configOptions['script'] : '');
         // Which Script are we to install ?
         foreach ($scripts as $key => $value) {
             if (trim(strtolower($value['name'])) == trim(strtolower($installationScript))) {
@@ -48,31 +53,27 @@ class PleskInstaller extends SoftactulousInstaller
 
         // Install the script
         $data = [
-            'softdomain' => $serviceFields['plesk_domain'],
+            'softdomain' => (!empty($serviceFields['plesk_domain']) ? $serviceFields['plesk_domain'] : ''),
             // OPTIONAL - By default it will be installed in the /public_html folder
             'softdirectory' => (!empty($configOptions['directory']) ? $configOptions['directory'] : ''),
-            'admin_username' => $configOptions['admin_name'],
-            'admin_pass' => $configOptions['admin_pass'],
+            'admin_username' => (!empty($configOptions['admin_name']) ? $configOptions['admin_name'] : ''),
+            'admin_pass' => (!empty($configOptions['admin_pass']) ? $configOptions['admin_pass'] : ''),
             'admin_email' => $client->email
         ];
         $response = $this->scriptInstallRequest(
             $sid,
-            'https://' . $meta->host_name . ':' . $meta->port . '/modules/softaculous/index.php',
+            'https://' . $hostName . ':' . $port . '/modules/softaculous/index.php',
             $data
         );
-        if ('installed' == strtolower($response)) {
-            return true;
-        }
 
-        $decodedResponse = json_decode($response);
-        if (isset($decodedResponse->done) && $decodedResponse->done) {
+        if (isset($response->done) && $response->done) {
             return true;
         }
 
         $errorMessage = Language::_(
             'SoftaculousPlugin.script_no_installed',
             true,
-            (isset($decodedResponse->error) ? json_encode($decodedResponse->error) : '')
+            (isset($response->error) ? json_encode($response->error) : '')
         );
         $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
         $this->logger->error($errorMessage);

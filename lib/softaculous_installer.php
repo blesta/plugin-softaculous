@@ -91,6 +91,7 @@ abstract class SoftactulousInstaller
 
         // Add a Question mark if necessary
         $login .= substr_count($login, '?') < 1 ?  '?' : '&';
+
         // Login PAGE
         if (in_array($scripts[$sid]['type'], ['js', 'perl', 'java'])) {
             $login .= 'act=js' . $scripts[$sid]['type'];
@@ -99,6 +100,7 @@ abstract class SoftactulousInstaller
         }
 
         $login = $login . '&api=json&soft=' . $sid . '&autoinstall=' . rawurlencode(base64_encode(serialize($data)));
+
         // Set the curl parameters.
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $login);
@@ -119,7 +121,7 @@ abstract class SoftactulousInstaller
         $resp = curl_exec($ch);
         $error = curl_error($ch);
         // Did we reach out to that place ?
-        if ($resp === false) {
+        if ($resp === false || $resp === null) {
             $errorMessage = Language::_('SoftaculousPlugin.script_not_installed', true);
             $this->Input->setErrors(['script_not_installed' => ['invalid' => $error]]);
             $this->logger->error($errorMessage);

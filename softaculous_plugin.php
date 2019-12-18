@@ -57,6 +57,8 @@ class SoftaculousPlugin extends Plugin
 
         // This plugin only supports the follwing modules: cPanel and Plesk
         $accepted_modules = ['cpanel', 'plesk'];
+        // This plugin only supports the follwing modules: cPanel and CentOS Web Panel
+        $accepted_modules = ['cpanel', 'centoswebpanel'];
         if ($service_activated && $module_info && in_array($module_info->class, $accepted_modules)) {
             // Fetch necessary data
             $service = $this->Services->get($par['service_id']);

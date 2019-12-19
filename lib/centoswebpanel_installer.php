@@ -34,7 +34,7 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         $hostName = isset($meta->host_name) ? $meta->host_name : '';
         $port = isset($meta->port) ? $meta->port : '';
         $autoLoginUrl = 'https://' . $hostName . ':' . $port . '/v1/user_session';
-        $autoLoginResponse = $this->post($autoLoginData, $autoLoginUrl, 'POST');
+        $autoLoginResponse = $this->makeRequest($autoLoginData, $autoLoginUrl, 'POST');
         if ($autoLoginResponse == null || !isset($autoLoginResponse->msj->details[0]->token)) {
             return;
         }
@@ -48,7 +48,7 @@ class CentoswebpanelInstaller extends SoftactulousInstaller
         }
 
         $loginData = ['username' => $serviceFields['centoswebpanel_username'], 'token' => $token];
-        $loginResponse = $this->post(
+        $loginResponse = $this->makeRequest(
             $loginData,
             'https://' . $hostName . ':2083/' . $serviceFields['centoswebpanel_username'] . '/',
             'POST'

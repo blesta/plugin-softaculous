@@ -31,7 +31,7 @@ class PleskInstaller extends SoftactulousInstaller
         $hostName = isset($meta->host_name) ? $meta->host_name : '';
         $port = isset($meta->port) ? $meta->port : '';
         $loginUrl = 'https://' . $hostName . ':' . $port . '/login_up.php3';
-        $this->post($loginData, $loginUrl, 'POST');
+        $this->makeRequest($loginData, $loginUrl, 'POST');
 
         return $this->installScript(
             (!empty($serviceFields['plesk_domain']) ? $serviceFields['plesk_domain'] : ''),

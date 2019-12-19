@@ -34,7 +34,7 @@ abstract class SoftactulousInstaller
      * @param string $method Http request method (GET, DELETE, POST)
      * @return string An json formatted string containing the response
      */
-    protected function post(array $post, $url, $method = 'GET')
+    protected function makeRequest(array $post, $url, $method = 'GET')
     {
         $ch = curl_init();
 
@@ -129,7 +129,7 @@ abstract class SoftactulousInstaller
     protected function installScript($scriptDomain, $scriptEmail, $panelUrl, array $configOptions)
     {
         // List of Scripts
-        $scripts = $this->post(
+        $scripts = $this->makeRequest(
             ['act' => 'home', 'api' => 'json'],
             $panelUrl,
             'GET'
@@ -172,7 +172,7 @@ abstract class SoftactulousInstaller
             'autoinstall' => rawurlencode(base64_encode(serialize($data)))
         ];
         $url = $panelUrl . (substr_count($panelUrl, '?') < 1 ?  '?' : '&') . http_build_query($params);
-        $response = $this->post($params, $url, 'POST');
+        $response = $this->makeRequest($params, $url, 'POST');
 
         if (isset($response->done) && $response->done) {
             return true;

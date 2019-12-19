@@ -158,12 +158,17 @@ abstract class SoftactulousInstaller
 
         // Install the script
         $data = [
+            'softsubmit' => '1',
             'softdomain' => $scriptDomain,
+            'site_name' => $scriptDomain,
+            'site_desc' => $scriptDomain,
             // OPTIONAL - By default it will be installed in the /public_html folder
             'softdirectory' => (!empty($configOptions['directory']) ? $configOptions['directory'] : ''),
             'admin_username' => isset($configOptions['admin_name']) ? $configOptions['admin_name'] : '',
             'admin_pass' => isset($configOptions['admin_pass']) ? $configOptions['admin_pass'] : '',
-            'admin_email' => $scriptEmail
+            'admin_email' => $scriptEmail,
+            'admin_fname' => Language::_('SoftaculousPlugin.admin_fname', true),
+            'admin_lname' => Language::_('SoftaculousPlugin.admin_lname', true),
         ];
         $params = [
             'act' => in_array($script->type, ['js', 'perl', 'java']) ? $script->type : 'software',

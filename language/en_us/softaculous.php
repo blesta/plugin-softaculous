@@ -9,3 +9,5 @@ $lang['SoftaculousPlugin.remote_firewall_error'] = 'Could not determine the loca
 $lang['SoftaculousPlugin.script_selected_error'] = 'Could not determine the script to be installed. Please make sure the script name is correct. Script Name: %1$s'; // %1$s is the script
 $lang['SoftaculousPlugin.script_installed'] = 'Script successfully installed';
 $lang['SoftaculousPlugin.script_no_installed'] = 'Could not install script: %1$s'; // %1$s is the script
+$lang['SoftaculousPlugin.admin_fname'] = 'System';
+$lang['SoftaculousPlugin.admin_lname'] = 'Administrator';

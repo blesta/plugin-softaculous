@@ -55,8 +55,8 @@ class SoftaculousPlugin extends Plugin
                 )
             );
 
-        // This plugin only supports the follwing modules: cPanel and CentOS Web Panel
-        $accepted_modules = ['cpanel', 'centoswebpanel'];
+        // This plugin only supports the follwing modules: cPanel, CentOS Web Panel, and Plesk
+        $accepted_modules = ['cpanel', 'centoswebpanel', 'plesk'];
         if ($service_activated && $module_info && in_array($module_info->class, $accepted_modules)) {
             // Fetch necessary data
             $service = $this->Services->get($par['service_id']);
@@ -94,19 +94,19 @@ class SoftaculousPlugin extends Plugin
     }
 
     /**
-	 * Loads the given library into this object
-	 *
-	 * @param string $panel_name The panel to load an installer for
+     * Loads the given library into this object
+     *
+     * @param string $panel_name The panel to load an installer for
      * @return SoftaculousInstaller
-	 */
-	private function loadInstaller($panel_name)
+     */
+    private function loadInstaller($panel_name)
     {
         $class_name = ucwords($panel_name) . 'Installer';
         if (isset($this->{$class_name})) {
             return $this->{$class_name};
         }
 
-		$file_name = dirname(__FILE__) . DS . 'lib' . DS . $panel_name . '_installer.php';
+        $file_name = dirname(__FILE__) . DS . 'lib' . DS . $panel_name . '_installer.php';
 
         if (file_exists($file_name)) {
             // Load the library requested
@@ -118,5 +118,5 @@ class SoftaculousPlugin extends Plugin
         } else {
             throw new Exception(Language::_('SoftaculousPlugin.library_error', true));
         }
-	}
+    }
 }

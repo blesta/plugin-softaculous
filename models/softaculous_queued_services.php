@@ -98,7 +98,7 @@ class SoftaculousQueuedServices extends AppModel
      * Fetches a list of all queued services
      *
      * @param int $company_id The ID of the company whose queued services to fetch
-     * @return array A list of stdClass objects, each representing a department
+     * @return array A list of stdClass objects, each representing a queued service
      */
     public function getAll($company_id)
     {
@@ -109,7 +109,7 @@ class SoftaculousQueuedServices extends AppModel
     }
 
     /**
-     * Fetches a list of rules for adding/editing a department
+     * Fetches a list of rules for adding/editing a queued service
      *
      * @param array $vars A list of input vars
      * @param bool $edit True to get the edit rules, false for the add rules (optional, default false)
@@ -151,7 +151,7 @@ class SoftaculousQueuedServices extends AppModel
             // Set all rules to optional
             $rules = $this->setRulesIfSet($rules);
 
-            // Require a valid department ID
+            // Require a valid queued service ID
             $rules['service_id']['exists_softaculous'] = [
                 'rule' => [[$this, 'validateExists'], 'service_id', 'softaculous_queued_services'],
                 'message' => $this->_('SoftaculousQueuedServices.!error.service_id.exists_softaculous')

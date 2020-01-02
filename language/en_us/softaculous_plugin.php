@@ -11,3 +11,8 @@ $lang['SoftaculousPlugin.script_installed'] = 'Script successfully installed';
 $lang['SoftaculousPlugin.script_no_installed'] = 'Could not install script: %1$s'; // %1$s is the script
 $lang['SoftaculousPlugin.admin_fname'] = 'System';
 $lang['SoftaculousPlugin.admin_lname'] = 'Administrator';
+
+
+// Cron
+$lang['SoftaculousPlugin.cron.reattempt_installation_name'] = 'Reattempt Installation Scripts';
+$lang['SoftaculousPlugin.cron.reattempt_installation_desc'] = 'Attempts to run installation scripts on previously errored services';

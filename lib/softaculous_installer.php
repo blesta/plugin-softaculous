@@ -77,6 +77,7 @@ abstract class SoftactulousInstaller
         $error = curl_error($ch);
         if ($error !== '') {
             $errorMessage = Language::_('SoftaculousPlugin.remote_curl_error', true, $error);
+            $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
             $this->logger->error($errorMessage);
             return;
         }
@@ -191,5 +192,15 @@ abstract class SoftactulousInstaller
         $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
         $this->logger->error($errorMessage);
         return false;
+    }
+
+    /**
+     * Gets errors from the installer
+     *
+     * @return array A list of input errors encountered by the installer
+     */
+    public function errors()
+    {
+        return $this->Input->errors();
     }
 }

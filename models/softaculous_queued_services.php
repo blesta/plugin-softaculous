@@ -24,9 +24,11 @@ class SoftaculousQueuedServices extends AppModel
      * Adds a queued service
      *
      * @param array $vars A list of input vars including:
+     *
      *  - service_id The ID service on which the script is to be run
      *  - company_id The ID of the company to which the service belongs
      *  - errors The errors that caused this service to be queued
+     *  - attempts The number of times the queued installation has been attempted
      * @return stdClass The stdClass object representing the newly-created queued script, or void on error
      */
     public function add(array $vars)
@@ -34,7 +36,6 @@ class SoftaculousQueuedServices extends AppModel
         $this->Input->setRules($this->getRules($vars));
 
         if ($this->Input->validates($vars)) {
-            $vars['attempts'] = 1;
             $fields = ['service_id', 'company_id', 'errors', 'attempts'];
             $this->Record->insert('softaculous_queued_services', $vars, $fields);
 
@@ -47,8 +48,10 @@ class SoftaculousQueuedServices extends AppModel
      *
      * @param int $service_id The ID of the service for which to edit the queue
      * @param array $vars A list of input vars including:
+     *
      *  - company_id The ID of the company to which the service belongs
      *  - errors The errors that caused this service to be queued
+     *  - attempts The number of times the queued installation has been attempted
      * @return stdClass The stdClass object representing the edited queued script, or void on error
      */
     public function edit($service_id, array $vars)
@@ -86,10 +89,10 @@ class SoftaculousQueuedServices extends AppModel
      */
     public function get($service_id)
     {
-        $service = $this->Record->select()
-            ->from('softaculous_queued_services')
-            ->where('service_id', '=', $service_id)
-            ->fetch();
+        $service = $this->Record->select()->
+            from('softaculous_queued_services')->
+            where('service_id', '=', $service_id)->
+            fetch();
 
         return $service;
     }
@@ -127,13 +130,6 @@ class SoftaculousQueuedServices extends AppModel
                 'exists' => [
                     'rule' => [[$this, 'validateExists'], 'id', 'companies'],
                     'message' => $this->_('SoftaculousQueuedServices.!error.company_id.exists')
-                ]
-            ],
-            'errors' => [
-                'empty' => [
-                    'rule' => 'isEmpty',
-                    'negate' => true,
-                    'message' => $this->_('SoftaculousQueuedServices.!error.errors.empty')
                 ]
             ],
             'attempts' => [

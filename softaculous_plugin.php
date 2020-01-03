@@ -26,7 +26,7 @@ class SoftaculousPlugin extends Plugin
             $this->Record->
                 setField('service_id', ['type' => 'int', 'size' => 10, 'unsigned' => true])->
                 setField('company_id', ['type' => 'int', 'size' => 10, 'unsigned' => true])->
-                setField('errors', ['type' => 'mediumtext'])->
+                setField('errors', ['type' => 'mediumtext', 'nullable' => true, 'default' => null])->
                 setField('attempts', ['type' => 'int', 'size' => 10, 'unsigned' => true])->
                 setKey(['service_id'], 'primary')->
                 create('softaculous_queued_services', true);
@@ -42,6 +42,17 @@ class SoftaculousPlugin extends Plugin
         return $plugin_id;
     }
 
+    /**
+     * Returns all events to be registered for this plugin (invoked after install() or upgrade(),
+     * overwrites all existing events)
+     *
+     * @return array A numerically indexed array containing:
+     *
+     *  - event The event to register for
+     *  - callback A string or array representing a callback function or class/method. If a user (e.g.
+     *      non-native PHP) function or class/method, the plugin must automatically define it when the plugin is loaded.
+     *      To invoke an instance methods pass "this" instead of the class name as the 1st callback element.
+     */
     public function getEvents()
     {
         return [
@@ -65,13 +76,13 @@ class SoftaculousPlugin extends Plugin
     private function getCronTasks()
     {
         return [
-            // Cron task to reattempt script installation
+            // Cron task to attempt script installations
             [
-                'key' => 'reattempt_installation',
+                'key' => 'script_installation',
                 'task_type' => 'plugin',
                 'dir' => 'softaculous',
-                'name' => Language::_('SoftaculousPlugin.cron.reattempt_installation_name', true),
-                'description' => Language::_('SoftaculousPlugin.cron.reattempt_installation_desc', true),
+                'name' => Language::_('SoftaculousPlugin.cron.script_installation_name', true),
+                'description' => Language::_('SoftaculousPlugin.cron.script_installation_desc', true),
                 'type' => 'interval',
                 'type_value' => 5,
                 'enabled' => 1
@@ -87,8 +98,8 @@ class SoftaculousPlugin extends Plugin
     public function cron($key)
     {
         switch ($key) {
-            case 'reattempt_installation':
-                $this->cronReattemptInstallation();
+            case 'script_installation':
+                $this->cronScriptInstallation();
                 break;
             default:
                 break;
@@ -96,9 +107,9 @@ class SoftaculousPlugin extends Plugin
     }
 
     /**
-     * Reattempt failed script installations
+     * Attempt queued script installations
      */
-    private function cronReattemptInstallation()
+    private function cronScriptInstallation()
     {
         Loader::loadModels($this, ['Softaculous.SoftaculousQueuedServices']);
         $queued_services = $this->SoftaculousQueuedServices->getAll(Configure::get('Blesta.company_id'));
@@ -126,22 +137,23 @@ class SoftaculousPlugin extends Plugin
             if (version_compare($current_version, '1.2.0', '<')) {
                 // Add new cron task to auto-close open tickets
                 $cron_tasks = $this->getCronTasks();
-                $task = null;
+                $install_task = null;
                 foreach ($cron_tasks as $task) {
-                    if ($task['key'] == 'reattempt_installation') {
+                    if ($task['key'] == 'script_installation') {
+                        $install_task = $task;
                         break;
                     }
                 }
 
-                if ($task) {
-                    $this->addCronTasks([$task]);
+                if ($install_task) {
+                    $this->addCronTasks([$install_task]);
                 }
 
                 // Add new table to store services with failed installation attempts
                 $this->Record->
                     setField('service_id', ['type' => 'int', 'size' => 10, 'unsigned' => true])->
                     setField('company_id', ['type' => 'int', 'size' => 10, 'unsigned' => true])->
-                    setField('errors', ['type' => 'mediumtext'])->
+                    setField('errors', ['type' => 'mediumtext', 'is_null' => true, 'default' => null])->
                     setField('attempts', ['type' => 'int', 'size' => 10, 'unsigned' => true])->
                     setKey(['service_id'], 'primary')->
                     create('softaculous_queued_services', true);
@@ -191,7 +203,7 @@ class SoftaculousPlugin extends Plugin
 
         // This plugin only supports the follwing modules: cPanel, CentOS Web Panel, and Plesk
         $accepted_modules = ['cpanel', 'centoswebpanel', 'plesk'];
-        if (!$module_info || !in_array($module_info->class, $accepted_modules)) {
+        if (!$module_info || !in_array(strtolower($module_info->class), $accepted_modules)) {
             // Remove the service from the queue since it is invalid
             $this->SoftaculousQueuedServices->delete($service_id);
             return;
@@ -199,7 +211,7 @@ class SoftaculousPlugin extends Plugin
 
         try {
             // Load the installer for this module
-            $installer = $this->loadInstaller($module_info->class);
+            $installer = $this->loadInstaller(strtolower($module_info->class));
 
             // Run the installation script
             $installer->install($service, $module_row->meta);
@@ -208,11 +220,11 @@ class SoftaculousPlugin extends Plugin
                 if (!$queued_service) {
                     // Create a record of the failed service and module so we can re-attempt installation later
                     $this->SoftaculousQueuedServices->add([
-                            'service_id' => $service_id,
-                            'company_id' => $service->package->company_id,
-                            'errors' => serialize($errors),
-                            'attempts' => 1,
-                        ]);
+                        'service_id' => $service_id,
+                        'company_id' => $service->package->company_id,
+                        'errors' => serialize($errors),
+                        'attempts' => 1,
+                    ]);
                 } else {
                     $queued_service->attempts++;
                     if ($queued_service->attempts > Configure::get('Softaculous.max_attempts')) {
@@ -220,21 +232,21 @@ class SoftaculousPlugin extends Plugin
                     } else {
                         // Update the errors and increment the attempt
                         $this->SoftaculousQueuedServices->edit(
-                                $service_id,
-                                [
-                                    'errors' => serialize($errors),
-                                    'attempts' => $queued_service->attempts,
-                                ]
-                            );
+                            $service_id,
+                            [
+                                'errors' => serialize($errors),
+                                'attempts' => $queued_service->attempts,
+                            ]
+                        );
                     }
 
                 }
             } else {
                 // Remove the service since we succeeded
                 $this->SoftaculousQueuedServices->delete($service_id);
+                $installer->logger->success(Language::_('SoftactulousPlugin.installation_success', true, $service_id));
             }
         } catch (Throwable $e) {
-            var_dump($e->getMessage());
             throw new Exception(Language::_('SoftaculousPlugin.library_error', true));
         } catch (Exception $e) {
             throw new Exception(Language::_('SoftaculousPlugin.library_error', true));

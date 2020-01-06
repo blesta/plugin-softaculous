@@ -244,7 +244,8 @@ class SoftaculousPlugin extends Plugin
             } else {
                 // Remove the service since we succeeded
                 $this->SoftaculousQueuedServices->delete($service_id);
-                $installer->logger->success(Language::_('SoftactulousPlugin.installation_success', true, $service_id));
+                $logger = $this->getFromContainer('logger');
+                $logger->info(Language::_('SoftaculousPlugin.installation_success', true, $service_id));
             }
         } catch (Throwable $e) {
             throw new Exception(Language::_('SoftaculousPlugin.library_error', true));

@@ -11,3 +11,9 @@ $lang['SoftaculousPlugin.script_installed'] = 'Script successfully installed';
 $lang['SoftaculousPlugin.script_no_installed'] = 'Could not install script: %1$s'; // %1$s is the script
 $lang['SoftaculousPlugin.admin_fname'] = 'System';
 $lang['SoftaculousPlugin.admin_lname'] = 'Administrator';
+$lang['SoftaculousPlugin.installation_success'] = 'Script installed successfully for service with ID %1$s'; // %1$s is the script
+
+
+// Cron
+$lang['SoftaculousPlugin.cron.script_installation_name'] = 'Provision Service Scripts';
+$lang['SoftaculousPlugin.cron.script_installation_desc'] = 'Installs pending scripts for services.';

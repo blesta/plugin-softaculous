@@ -99,7 +99,7 @@ abstract class SoftactulousInstaller
     /**
      * Parses an HTTP response for cookies and records them for later use
      *
-     * @param string $response The string response from CentOS Web Panel
+     * @param string $response The string response from the Control Panel
      */
     private function setCookie($response)
     {

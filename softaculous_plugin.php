@@ -202,7 +202,7 @@ class SoftaculousPlugin extends Plugin
         $module_info = $this->getModuleClassByPricingId($service->pricing_id);
 
         // This plugin only supports the follwing modules: cPanel, CentOS Web Panel, and Plesk
-        $accepted_modules = ['cpanel', 'centoswebpanel', 'plesk'];
+        $accepted_modules = ['cpanel', 'centoswebpanel', 'plesk', 'direct_admin'];
         if (!$module_info || !in_array(strtolower($module_info->class), $accepted_modules)) {
             // Remove the service from the queue since it is invalid
             $this->SoftaculousQueuedServices->delete($service_id);
@@ -278,7 +278,7 @@ class SoftaculousPlugin extends Plugin
      */
     private function loadInstaller($panel_name)
     {
-        $class_name = ucwords($panel_name) . 'Installer';
+        $class_name = str_replace('_', '', ucwords($panel_name)) . 'Installer';
         if (isset($this->{$class_name})) {
             return $this->{$class_name};
         }

@@ -3,9 +3,9 @@ include_once dirname(__FILE__) . DS . 'softaculous_installer.php';
 class DirectAdminInstaller extends SoftactulousInstaller
 {
     /**
-     * Validates informations and runs a softaculous installation script on Plesk
+     * Validates informations and runs a softaculous installation script on Direct Admin
      *
-     * @param stdClass $service An object representing the Plesk service to execute a script for
+     * @param stdClass $service An object representing the Direct Admin service to execute a script for
      * @param stdClass $meta The module row meta data for the service
      * @return boolean Whether the script succeeded
      */

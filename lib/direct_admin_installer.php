@@ -24,21 +24,21 @@ class DirectAdminInstaller extends SoftactulousInstaller
         $client = $this->Clients->get($service->client_id);
 
         // Login and get the cookies
-        $loginData = [
-            'username' => isset($serviceFields['direct_admin_username']) ? $serviceFields['direct_admin_username'] : '',
-            'password' => isset($serviceFields['direct_admin_password']) ? $serviceFields['direct_admin_password'] : ''
-        ];
         $hostName = isset($meta->host_name) ? $meta->host_name : '';
         $port = isset($meta->port) ? $meta->port : '';
         $ssl = isset($meta->use_ssl) && $meta->use_ssl == '1';
-        $loginUrl = ($ssl ? 'https://' : 'http://') . $hostName . ':' . $port . '/CMD_LOGIN';
-        $this->makeRequest($loginData, $loginUrl, 'POST');
 
+        $authDetails = [
+            'useragent' => 'blesta_softaculous_installation',
+            'username' => isset($serviceFields['direct_admin_username']) ? $serviceFields['direct_admin_username'] : '',
+            'password' => isset($serviceFields['direct_admin_password']) ? $serviceFields['direct_admin_password'] : ''
+        ];
         return $this->installScript(
             (!empty($serviceFields['direct_admin_domain']) ? $serviceFields['direct_admin_domain'] : ''),
             $client->email,
             ($ssl ? 'https://' : 'http://') . $hostName . ':' . $port . '/CMD_PLUGINS/softaculous/index.raw',
-            $configOptions
+            $configOptions,
+            $authDetails
         );
     }
 }

@@ -32,9 +32,10 @@ abstract class SoftactulousInstaller
      * @param array $post The parameters to include in the request
      * @param string $url Specifies the url to invoke
      * @param string $method Http request method (GET, DELETE, POST)
+     * @param array $authDetails A list of basic auth details
      * @return string An json formatted string containing the response
      */
-    protected function makeRequest(array $post, $url, $method = 'GET')
+    protected function makeRequest(array $post, $url, $method = 'GET', array $authDetails = [])
     {
         $ch = curl_init();
 
@@ -61,7 +62,12 @@ abstract class SoftactulousInstaller
 
         // Create new session cookies
         curl_setopt($ch, CURLOPT_COOKIESESSION, true);
-        if (!empty($this->cookie)) {
+
+        if (!empty($authDetails['useragent']) && !empty($authDetails['username']) && !empty($authDetails['password'])) {
+            curl_setopt($ch, CURLOPT_USERAGENT, $authDetails['useragent']);
+            curl_setopt($ch, CURLOPT_USERPWD, $authDetails['username'] . ':' . $authDetails['password']);
+            curl_setopt($ch, CURLOPT_HTTPAUTH,CURLAUTH_BASIC);
+        } elseif (!empty($this->cookie)) {
             curl_setopt($ch, CURLOPT_COOKIE, $this->cookie);
         }
 
@@ -125,15 +131,22 @@ abstract class SoftactulousInstaller
      * @param string $scriptEmail The admin email for the script
      * @param string $panelUrl The url of the panel to access Softaculous on
      * @param array $configOptions A list of config options for the service associated with this domain
+     * @param array $authDetails A list of basic auth details
      * @return boolean True if installation succeeded, false otherwise
      */
-    protected function installScript($scriptDomain, $scriptEmail, $panelUrl, array $configOptions)
-    {
+    protected function installScript(
+        $scriptDomain,
+        $scriptEmail,
+        $panelUrl,
+        array $configOptions,
+        array $authDetails = []
+    ) {
         // List of Scripts
         $scripts = $this->makeRequest(
             ['act' => 'home', 'api' => 'json'],
             $panelUrl,
-            'GET'
+            'GET',
+            $authDetails
         );
         $installationScript = isset($configOptions['script']) ? $configOptions['script'] : '';
 
@@ -178,7 +191,7 @@ abstract class SoftactulousInstaller
             'autoinstall' => rawurlencode(base64_encode(serialize($data)))
         ];
         $url = $panelUrl . (substr_count($panelUrl, '?') < 1 ?  '?' : '&') . http_build_query($params);
-        $response = $this->makeRequest($params, $url, 'POST');
+        $response = $this->makeRequest($params, $url, 'POST', $authDetails);
 
         if (isset($response->done) && $response->done) {
             return true;

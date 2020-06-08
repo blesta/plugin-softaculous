@@ -201,8 +201,8 @@ class SoftaculousPlugin extends Plugin
         // Get module info
         $module_info = $this->getModuleClassByPricingId($service->pricing_id);
 
-        // This plugin only supports the follwing modules: cPanel, CentOS Web Panel, and Plesk
-        $accepted_modules = ['cpanel', 'centoswebpanel', 'plesk', 'direct_admin'];
+        // This plugin only supports the following modules: cPanel, CentOS Web Panel, Plesk and InterWorx
+        $accepted_modules = ['cpanel', 'centoswebpanel', 'plesk', 'direct_admin', 'interworx'];
         if (!$module_info || !in_array(strtolower($module_info->class), $accepted_modules)) {
             // Remove the service from the queue since it is invalid
             $this->SoftaculousQueuedServices->delete($service_id);

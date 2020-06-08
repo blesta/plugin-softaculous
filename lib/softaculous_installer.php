@@ -149,6 +149,7 @@ abstract class SoftactulousInstaller
             $authDetails
         );
         $installationScript = isset($configOptions['script']) ? $configOptions['script'] : '';
+        unset($configOptions['script']);
 
         // Which Script are we to install ?
         $script = null;
@@ -184,6 +185,16 @@ abstract class SoftactulousInstaller
             'admin_fname' => Language::_('SoftaculousPlugin.admin_fname', true),
             'admin_lname' => Language::_('SoftaculousPlugin.admin_lname', true),
         ];
+        $additional_fields = [];
+
+        foreach ($configOptions as $field => $value) {
+            if (!empty($value)) {
+                $additional_fields[$field] = $value;
+            }
+        }
+
+        $data = array_merge($additional_fields, $data);
+
         $params = [
             'act' => in_array($script->type, ['js', 'perl', 'java']) ? $script->type : 'software',
             'api' => 'json',

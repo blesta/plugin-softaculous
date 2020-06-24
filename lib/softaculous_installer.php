@@ -73,6 +73,7 @@ abstract class SoftactulousInstaller
 
         // Check the Header
         curl_setopt($ch, CURLOPT_HEADER, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
         // Get response from the server.

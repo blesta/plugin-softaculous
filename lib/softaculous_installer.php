@@ -33,9 +33,10 @@ abstract class SoftactulousInstaller
      * @param string $url Specifies the url to invoke
      * @param string $method Http request method (GET, DELETE, POST)
      * @param array $authDetails A list of basic auth details
+     * @param bool $raw True to return the raw response, false by default
      * @return string An json formatted string containing the response
      */
-    protected function makeRequest(array $post, $url, $method = 'GET', array $authDetails = [])
+    protected function makeRequest(array $post, $url, $method = 'GET', array $authDetails = [], $raw = false)
     {
         $ch = curl_init();
 
@@ -68,7 +69,7 @@ abstract class SoftactulousInstaller
             curl_setopt($ch, CURLOPT_USERPWD, $authDetails['username'] . ':' . $authDetails['password']);
             curl_setopt($ch, CURLOPT_HTTPAUTH,CURLAUTH_BASIC);
         } elseif (!empty($this->cookie)) {
-            curl_setopt($ch, CURLOPT_COOKIE, $this->cookie);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Cookie: ' . $this->cookie]);
         }
 
         // Check the Header
@@ -91,6 +92,11 @@ abstract class SoftactulousInstaller
 
         $curlInfo = curl_getinfo($ch);
         curl_close($ch);
+
+        // Return raw response
+        if ($raw) {
+            return $response;
+        }
 
         // If we are being redirected, return the CURL info instead of the response
         if (!empty($curlInfo['redirect_url'])
@@ -120,7 +126,7 @@ abstract class SoftactulousInstaller
             }
 
             foreach ($cookies as $cookie => $value) {
-                $this->cookie = $cookie . '=' . $value;
+                $this->cookie = (!empty($this->cookie) ? $this->cookie . ';' : '') . $cookie . '=' . $value;
             }
         }
     }

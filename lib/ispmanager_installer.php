@@ -1,7 +1,6 @@
 <?php
 include_once dirname(__FILE__) . DS . 'softaculous_installer.php';
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+
 class IspmanagerInstaller extends SoftactulousInstaller
 {
 
@@ -28,65 +27,104 @@ class IspmanagerInstaller extends SoftactulousInstaller
 
         // Authenticate in to ISPmanager account
         $loginData = [
-            'username' => $serviceFields['ispmanager_username'],
-            'password' => $serviceFields['ispmanager_password'],
-            'lang' => 'en',
-            'forget' => 'on',
-            'func' => 'auth'
+            'authinfo' => $serviceFields['ispmanager_username'] . ':' . $serviceFields['ispmanager_password'],
+            'func' => 'auth',
+            'out' => 'json',
+            'sok' => 'ok'
         ];
-        $hostUrl = ($meta->use_ssl == 'true' ? 'https' : 'http') . '://' . $meta->host_name . ':1500/ispmgr?startform=softaculous.redirect&sok=ok';
+        $hostUrl = ($meta->use_ssl == 'true' ? 'https' : 'http') . '://' . $meta->host_name . ':1500/ispmgr';
 
-        $loginResponse = $this->request($hostUrl, $loginData);
+        $loginResponse = $this->makeRequest(
+            $loginData,
+            $hostUrl,
+            'GET'
+        );
 
-        if (empty($loginResponse)) {
+        if (!isset($loginResponse->doc->auth->{'$id'})) {
             $errorMessage = Language::_('SoftaculousPlugin.remote_error', true);
             $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
             $this->logger->error($errorMessage);
             return;
         }
 
-        // ISPmanager by default creates a robots.txt file on new accounts, making it necessary to overwrite the existing files
-        //$configOptions['overwrite_existing'] = 1;
+        // Authenticate in to Softaculous
+        $session_id = $loginResponse->doc->auth->{'$id'};
+        $softaculousData = [
+            'auth' => $session_id,
+            'func' => 'softaculous.redirect',
+            'out' => 'json',
+            'sok' => 'ok'
+        ];
+
+        $softaculousResponse = $this->makeRequest(
+            $softaculousData,
+            $hostUrl,
+            'GET'
+        );
+
+        if (!isset($softaculousResponse->doc->ok->{'$'})) {
+            $errorMessage = Language::_('SoftaculousPlugin.remote_error', true);
+            $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
+            $this->logger->error($errorMessage);
+            return;
+        }
+
+        // Get Softaculous login url
+        $login = $softaculousResponse->doc->ok->{'$'};
+        $query = explode('?', $login, 2);
+
+        $login = isset($query[0]) ? $query[0] : null;
+        $query = isset($query[1]) ? $query[1] : null;
+
+        parse_str($query, $query);
+
+        $urlData = [
+            'func' => 'redirect',
+            'auth' => $query['auth'],
+            'authm' => $query['authm'],
+            'lang' => $query['lang'],
+            'redirect_uri' => $query['redirect_uri'],
+            'sok' => 'ok'
+        ];
+
+        $urlResponse = $this->makeRequest(
+            $urlData,
+            $login,
+            'GET'
+        );
+
+        // Softaculous on ISPmanager requires a CSRF token for each call
+        $api = isset($urlResponse->location) ? $urlResponse->location : $login;
+        $configOptions['csrf_token'] = $this->getToken($api);
 
         // Install script
-        $login = ($meta->use_ssl == 'true' ? 'https' : 'http') . '://' . $meta->host_name . '/softaculous/index.php?act=home&api=serialize';
-        $response = $this->request($login, $configOptions);
-
-        print_r(strip_tags($response)); exit;
+        $login = isset($urlResponse->location) ? $urlResponse->location . 'index.php' : $login;
 
         return $this->installScript(
-            isset($serviceFields['ispmanager_domain']) ? $serviceFields['ispmanager_domain'] : '',
+            (!empty($serviceFields['ispmanager_domain']) ? $serviceFields['ispmanager_domain'] : ''),
             $client->email,
             $login,
             $configOptions
         );
     }
 
-    private function request($url, $params = [])
+    /**
+     * Get the CSRF token for the next request
+     *
+     * @param $url The Softaculous API url
+     * @return string The CSRF token
+     */
+    private function getToken($url)
     {
-        if (!isset($this->cookie)) {
-            $this->cookie = fopen('php://temp', 'w');
-            $this->request = curl_init();
-        }
+        $params = [
+            'act' => 'software',
+            'soft' => 26
+        ];
+        $tokenResponse = $this->makeRequest($params, $url, 'GET', [], true);
 
-        curl_setopt($this->request, CURLOPT_URL, $url);
-        curl_setopt($this->request, CURLOPT_VERBOSE, 0);
-        curl_setopt($this->request, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($this->request, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($this->request, CURLOPT_POST, true);
+        $body = explode('name="csrf_token" value="', $tokenResponse, 2);
+        $body = explode('" />', (isset($body[1]) ? $body[1] : ''), 2);
 
-        if (!empty($params)) {
-            curl_setopt($this->request, CURLOPT_POSTFIELDS, http_build_query($params));
-        }
-
-        curl_setopt($this->request, CURLOPT_HEADER, true);
-        curl_setopt($this->request, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($this->request, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($this->request, CURLOPT_COOKIEJAR, $this->cookie);
-        curl_setopt($this->request, CURLOPT_COOKIEFILE, $this->cookie);
-
-        $response = curl_exec($this->request);
-
-        return $response;
+        return isset($body[0]) ? trim($body[0]) : '';
     }
 }

@@ -95,7 +95,7 @@ class IspmanagerInstaller extends SoftactulousInstaller
 
         // Softaculous on ISPmanager requires a CSRF token for each call
         $api = isset($urlResponse->location) ? $urlResponse->location : $login;
-        $configOptions['csrf_token'] = $this->getToken($api);
+        $configOptions = array_merge($configOptions, $this->getToken($api));
 
         // Install script
         $login = isset($urlResponse->location) ? $urlResponse->location . 'index.php' : $login;
@@ -112,7 +112,7 @@ class IspmanagerInstaller extends SoftactulousInstaller
      * Get the CSRF token for the next request
      *
      * @param $url The Softaculous API url
-     * @return string The CSRF token
+     * @return array An array contaning the CSRF token and soft status key
      */
     private function getToken($url)
     {
@@ -122,9 +122,15 @@ class IspmanagerInstaller extends SoftactulousInstaller
         ];
         $tokenResponse = $this->makeRequest($params, $url, 'GET', [], true);
 
-        $body = explode('name="csrf_token" value="', $tokenResponse, 2);
-        $body = explode('" />', (isset($body[1]) ? $body[1] : ''), 2);
+        $csrf_token = explode('name="csrf_token" value="', $tokenResponse, 2);
+        $csrf_token = explode('" />', (isset($csrf_token[1]) ? $csrf_token[1] : ''), 2);
 
-        return isset($body[0]) ? trim($body[0]) : '';
+        $soft_status_key = explode('id="soft_status_key" value="', $tokenResponse, 2);
+        $soft_status_key = explode('" />', (isset($soft_status_key[1]) ? $soft_status_key[1] : ''), 2);
+
+        return [
+            'csrf_token' => isset($csrf_token[0]) ? trim($csrf_token[0]) : '',
+            'soft_status_key' => isset($soft_status_key[0]) ? trim($soft_status_key[0]) : ''
+        ];
     }
 }

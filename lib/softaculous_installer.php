@@ -7,6 +7,15 @@ abstract class SoftactulousInstaller
     protected $logger;
 
     /**
+     * @var array An array containing the installer options
+     */
+    public $options = [
+        'request' => [
+            'raw' => false
+        ]
+    ];
+
+    /**
      * The installer constructor
      *
      * @param Monolog\Logger $logger An instance of the logger
@@ -33,10 +42,9 @@ abstract class SoftactulousInstaller
      * @param string $url Specifies the url to invoke
      * @param string $method Http request method (GET, DELETE, POST)
      * @param array $authDetails A list of basic auth details
-     * @param bool $raw True to return the raw response, false by default
      * @return string An json formatted string containing the response
      */
-    protected function makeRequest(array $post, $url, $method = 'GET', array $authDetails = [], $raw = false)
+    protected function makeRequest(array $post, $url, $method = 'GET', array $authDetails = [])
     {
         $ch = curl_init();
 
@@ -77,6 +85,11 @@ abstract class SoftactulousInstaller
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
+        // Set request referer
+        if (isset($this->options['request']['referer'])) {
+            curl_setopt($ch, CURLOPT_REFERER, $this->options['request']['referer']);
+        }
+
         // Get response from the server.
         $response = curl_exec($ch);
 
@@ -94,7 +107,7 @@ abstract class SoftactulousInstaller
         curl_close($ch);
 
         // Return raw response
-        if ($raw) {
+        if ($this->options['request']['raw']) {
             return $response;
         }
 
@@ -129,6 +142,16 @@ abstract class SoftactulousInstaller
                 $this->cookie = (!empty($this->cookie) ? $this->cookie . ';' : '') . $cookie . '=' . $value;
             }
         }
+    }
+
+    /**
+     * Set the options for the current installation
+     *
+     * @param array $options An array containing the installer options
+     */
+    protected function setOptions(array $options)
+    {
+        $this->options = $options;
     }
 
     /**

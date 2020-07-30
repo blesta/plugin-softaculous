@@ -92,13 +92,23 @@ class IspmanagerInstaller extends SoftactulousInstaller
             $login,
             'GET'
         );
-
+        
         // Softaculous on ISPmanager requires a CSRF token for each call
         $api = isset($urlResponse->location) ? $urlResponse->location : $login;
         $configOptions = array_merge($configOptions, $this->getToken($api));
 
         // Install script
-        $login = isset($urlResponse->location) ? $urlResponse->location . 'index.php' : $login;
+        $login = isset($urlResponse->location) ? $urlResponse->location : $login;
+
+        // Set installer options
+        $this->setOptions(
+            [
+                'request' => [
+                    'raw' => false,
+                    'referer' => $login . '?api=serialize&act=software'
+                ]
+            ]
+        );
 
         return $this->installScript(
             (!empty($serviceFields['ispmanager_domain']) ? $serviceFields['ispmanager_domain'] : ''),
@@ -116,11 +126,14 @@ class IspmanagerInstaller extends SoftactulousInstaller
      */
     private function getToken($url)
     {
+        // Set the options for the current request
+        $this->setOptions(['request' => ['raw' => true]]);
+
         $params = [
             'act' => 'software',
             'soft' => 26
         ];
-        $tokenResponse = $this->makeRequest($params, $url, 'GET', [], true);
+        $tokenResponse = $this->makeRequest($params, $url, 'GET');
 
         $csrf_token = explode('name="csrf_token" value="', $tokenResponse, 2);
         $csrf_token = explode('" />', (isset($csrf_token[1]) ? $csrf_token[1] : ''), 2);

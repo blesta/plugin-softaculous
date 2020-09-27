@@ -82,8 +82,12 @@ abstract class SoftactulousInstaller
 
         // Check the Header
         curl_setopt($ch, CURLOPT_HEADER, 1);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+        // Follow location
+        if (isset($this->options['request']['follow_location'])) {
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $this->options['request']['follow_location']);
+        }
 
         // Set request referer
         if (isset($this->options['request']['referer'])) {
@@ -204,6 +208,7 @@ abstract class SoftactulousInstaller
         // Install the script
         $data = [
             'softsubmit' => '1',
+            'php_version_select' => '1',
             'softdomain' => $scriptDomain,
             'site_name' => $scriptDomain,
             'site_desc' => $scriptDomain,

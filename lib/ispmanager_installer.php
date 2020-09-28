@@ -26,6 +26,7 @@ class IspmanagerInstaller extends SoftactulousInstaller
         $client = $this->Clients->get($service->client_id);
 
         // Authenticate in to ISPmanager account
+        $this->setOptions(['request' => ['follow_location' => true]]);
         $loginData = [
             'authinfo' => $serviceFields['ispmanager_username'] . ':' . $serviceFields['ispmanager_password'],
             'func' => 'auth',
@@ -105,6 +106,7 @@ class IspmanagerInstaller extends SoftactulousInstaller
             [
                 'request' => [
                     'raw' => false,
+                    'follow_location' => true,
                     'referer' => $login . '?api=serialize&act=software'
                 ]
             ]

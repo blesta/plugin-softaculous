@@ -179,7 +179,7 @@ class SoftaculousPlugin extends Plugin
                 )
             );
 
-        if (true||$service_activated) {
+        if ($service_activated) {
             $this->runInstaller($par['service_id']);
         }
     }

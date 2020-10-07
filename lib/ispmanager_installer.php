@@ -51,25 +51,25 @@ class IspmanagerInstaller extends SoftactulousInstaller
         // Determine if the ISPManager installation is Lite or Business, by calling the 'node' function
         // which is only available to business installations.
         $session_id = $loginResponse->doc->auth->{'$id'};
-//        $nodeData = [
-//            'func' => 'node',
-//            'auth' => $session_id,
-//            'out' => 'json',
-//            'sok' => 'ok'
-//        ];
-//        $nodeResponse = $this->makeRequest(
-//            $nodeData,
-//            $hostUrl,
-//            'GET'
-//        );
-//        // Regardless of the installation type we should see an error.  It would be 'missed' for
-//        // lite and 'access' for business
-//        if (!isset($nodeResponse->doc->error)) {
-//            return;
-//        }
+        $nodeData = [
+            'func' => 'node',
+            'auth' => $session_id,
+            'out' => 'json',
+            'sok' => 'ok'
+        ];
+        $nodeResponse = $this->makeRequest(
+            $nodeData,
+            $hostUrl,
+            'GET'
+        );
+        // Regardless of the installation type we should see an error.  It would be 'missed' for
+        // lite and 'access' for business
+        if (!isset($nodeResponse->doc->error)) {
+            return;
+        }
 
         // An error type of missed means that the function does not exist and thus this is a lite installation
-        $is_lite = true;//$nodeResponse->doc->error->{'$type'} == 'missed';
+        $is_lite = $nodeResponse->doc->error->{'$type'} == 'missed';
 
         $softaculous_url = ($meta->use_ssl == 'true' ? 'https' : 'http') . '://' . $meta->host_name . '/softaculous/';
         if ($is_lite) {

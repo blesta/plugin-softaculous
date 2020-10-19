@@ -103,7 +103,7 @@ abstract class SoftactulousInstaller
         if ($error !== '') {
             $errorMessage = Language::_('SoftaculousPlugin.remote_curl_error', true, $error);
             $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
-            $this->logger->error(json_encode($response));
+            $this->logger->error('remote|' . json_encode($response));
             return;
         }
 
@@ -201,7 +201,7 @@ abstract class SoftactulousInstaller
         if (empty($sid)) {
             $errorMessage = Language::_('SoftaculousPlugin.script_selected_error', true, $installationScript);
             $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
-            $this->logger->error(json_encode($scripts));
+            $this->logger->error('scripts|' . json_encode($scripts));
             return;
         }
 
@@ -236,6 +236,7 @@ abstract class SoftactulousInstaller
             'soft' => $sid,
             'autoinstall' => rawurlencode(base64_encode(serialize($data)))
         ];
+        $this->logger->error('scriptinstallparams|' . json_encode($params));
         $url = $panelUrl . (substr_count($panelUrl, '?') < 1 ?  '?' : '&') . http_build_query($params);
         $response = $this->makeRequest($params, $url, 'POST', $authDetails);
 
@@ -249,7 +250,7 @@ abstract class SoftactulousInstaller
             (isset($response->error) ? json_encode($response->error) : '')
         );
         $this->Input->setErrors(['script_id' => ['invalid' => $errorMessage]]);
-        $this->logger->error(json_encode($response));
+        $this->logger->error('scriptinstall|' . json_encode($response));
         return false;
     }
 

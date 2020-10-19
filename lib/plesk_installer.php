@@ -33,7 +33,7 @@ class PleskInstaller extends SoftactulousInstaller
         $loginUrl = 'https://' . $hostName . ':' . $port . '/login_up.php3';
         $this->makeRequest($loginData, $loginUrl, 'POST');
 
-        // Set the domain to manager
+        // Set the domain to manage
         $this->cookie = (!empty($this->cookie) ? $this->cookie . ';' : '')
             . 'softdomid=' . $serviceFields['plesk_webspace_id'];
 

@@ -220,6 +220,13 @@ abstract class SoftactulousInstaller
             'admin_fname' => Language::_('SoftaculousPlugin.admin_fname', true),
             'admin_lname' => Language::_('SoftaculousPlugin.admin_lname', true),
         ];
+
+        // Generate a random password if not posted by user
+        if(empty($data['admin_pass'])){
+            $data['admin_pass'] = $this->randstr(12, 1);
+            $data['email_password'] = 1; // To send raw password in email only for this API call
+        }
+
         $additional_fields = [];
 
         foreach ($configOptions as $field => $value) {
@@ -262,5 +269,41 @@ abstract class SoftactulousInstaller
     public function errors()
     {
         return $this->Input->errors();
+    }
+
+    /**
+     * Creates a random string used for password
+     *
+     * @return string A random string
+     */
+    function randstr($length, $special = 0){
+        
+        $randstr = "";
+        
+        // Uppercase
+        $randstr .= strtoupper(chr(97 + mt_rand(0, 25)));
+        
+        // Number
+        $randstr .= mt_rand(0, 9);
+
+        if(!empty($special)){
+            // Special Character
+            $sp_chars = '!@#$%&*?';
+            $randstr .= $sp_chars[rand(0, strlen($sp_chars) - 1)];
+        }
+        
+        $newlength = ($length - strlen($randstr));
+        
+        for($i = 0; $i < $newlength; $i++){    
+            $randnum = mt_rand(0,61);        
+            if($randnum < 10){        
+                $randstr .= chr($randnum+48);            
+            }elseif($randnum < 36){        
+                $randstr .= chr($randnum+55);            
+            }else{        
+                $randstr .= chr($randnum+61);            
+            }        
+        }
+        return str_shuffle($randstr);
     }
 }

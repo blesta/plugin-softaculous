@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/blesta/plugin-softaculous.svg?branch=master)](https://travis-ci.org/blesta/plugin-softaculous) [![Coverage Status](https://coveralls.io/repos/github/blesta/plugin-softaculous/badge.svg?branch=master)](https://coveralls.io/github/blesta/plugin-softaculous?branch=master)
 
-This is a plugin for Blesta that integrates with [Softaculous](https://www.softaculous.com/).  When a service is created by cPanel, CentOS Web Panel, Plesk, Interworx, or ISPmanager this plugin runs a softaculous script.
+This is a plugin for Blesta that integrates with [Softaculous](https://www.softaculous.com/).  When a service is created by cPanel, Webuzo, CentOS Web Panel, Plesk, Interworx, or ISPmanager this plugin runs a softaculous script.
 
 ## Install the Plugin
 

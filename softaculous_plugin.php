@@ -37,7 +37,7 @@ class SoftaculousPlugin extends Plugin
         }
 
         // Add cron tasks
-        $this->addCronTasks($this->getCronTasks());
+        $this->addCronTasks($this->getCronTaskDefinitions());
 
         return $plugin_id;
     }
@@ -73,7 +73,7 @@ class SoftaculousPlugin extends Plugin
      *
      * @return array A list of cron tasks
      */
-    private function getCronTasks()
+    public function getCronTaskDefinitions()
     {
         return [
             // Cron task to attempt script installations
@@ -136,7 +136,7 @@ class SoftaculousPlugin extends Plugin
             // Upgrade to 1.2.0
             if (version_compare($current_version, '1.2.0', '<')) {
                 // Add new cron task to auto-close open tickets
-                $cron_tasks = $this->getCronTasks();
+                $cron_tasks = $this->getCronTaskDefinitions();
                 $install_task = null;
                 foreach ($cron_tasks as $task) {
                     if ($task['key'] == 'script_installation') {

@@ -25,40 +25,39 @@ class CpanelInstaller extends SoftactulousInstaller
         $configOptions = $this->Form->collapseObjectArray($service->options, 'value', 'option_name');
         $client = $this->Clients->get($service->client_id);
 
-        // Login and get the cookies
+        // Login and get the security token and cookies
         $loginData = [
             'user' => $serviceFields['cpanel_username'],
-            'pass' => $serviceFields['cpanel_password'],
-            'goto_uri' => '/'
+            'pass' => $serviceFields['cpanel_password']
         ];
         $hostName = isset($meta->host_name) ? $meta->host_name : '';
         $loginResponse = $this->makeRequest(
             $loginData,
-            'https://' . $hostName . ':2083/login/',
+            'https://' . $hostName . ':2083/login/?login_only=1',
             'POST'
         );
 
-        if ($loginResponse == null) {
+        if ($loginResponse == null || empty($loginResponse->security_token)) {
             $errorMessage = Language::_('SoftaculousPlugin.remote_error', true);
             $this->Input->setErrors(['login' => ['invalid' => $errorMessage]]);
             $this->logger->error($errorMessage);
             return;
         }
 
-        $parsed = ['path' => ''];
-        if (!empty($loginResponse->redirect_url)) {
-            $parsed = parse_url($loginResponse->redirect_url);
-        } elseif (!empty($loginResponse->url)) {
-            $parsed = parse_url($loginResponse->url);
+        // Determine the frontend theme from the login redirect, fallback to jupiter
+        $themeName = 'jupiter';
+        if (!empty($loginResponse->redirect) && strpos($loginResponse->redirect, '/frontend/') !== false) {
+            $parsedRedirect = parse_url($loginResponse->redirect);
+            $redirectPath = trim(dirname($parsedRedirect['path']));
+            $extracted = basename(rtrim($redirectPath, '/'));
+            if (!empty($extracted)) {
+                $themeName = $extracted;
+            }
         }
 
-        $path = trim(dirname($parsed['path']));
-        $path = rtrim($path[0] == '/' ? $path : '/' . $path, '/');
-
         // Make the Login system
-        $login = 'https://' . rawurlencode($serviceFields['cpanel_username']) . ':'
-            . rawurlencode($serviceFields['cpanel_password']) . '@' . $meta->host_name . ':2083'
-            . $path . '/softaculous/index.live.php';
+        $login = 'https://' . $meta->host_name . ':2083' . $loginResponse->security_token
+            . '/frontend/' . $themeName . '/softaculous/index.live.php';
 
         return $this->installScript(
             (!empty($serviceFields['cpanel_domain']) ? $serviceFields['cpanel_domain'] : ''),

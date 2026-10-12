@@ -5,6 +5,13 @@ abstract class SoftactulousInstaller
      * @var Monolog\Logger An instance of the logger
      */
     protected $logger;
+	
+    /**
+     * Stores cookies received from the control panel.
+     *
+     * @var string
+     */
+    protected $cookie = '';
 
     /**
      * @var array An array containing the installer options
@@ -132,21 +139,47 @@ abstract class SoftactulousInstaller
      * @param string $response The string response from the Control Panel
      */
     private function setCookie($response)
-    {
-        preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $response, $matches);
+	{
+		preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $response, $matches);
 
-        if (!empty($matches)) {
-            $cookies = [];
-            foreach ($matches[1] as $item) {
-                parse_str($item, $cookie);
-                $cookies = array_merge($cookies, $cookie);
-            }
+		if (empty($matches[1])) {
+			return;
+		}
 
-            foreach ($cookies as $cookie => $value) {
-                $this->cookie = (!empty($this->cookie) ? $this->cookie . ';' : '') . $cookie . '=' . $value;
-            }
-        }
-    }
+		$cookies = [];
+
+		foreach ($matches[1] as $item) {
+			$parts = explode('=', $item, 2);
+
+			if (count($parts) !== 2) {
+				continue;
+			}
+
+			$name = trim($parts[0]);
+			$value = trim($parts[1]);
+
+			if ($name === '') {
+				continue;
+			}
+
+			// Preserve the cookie value exactly as received.
+			// Do NOT use parse_str(), urldecode(), or any other decoder.
+			$cookies[$name] = $value;
+		}
+
+		if (!empty($cookies)) {
+			$this->cookie = implode(
+				'; ',
+				array_map(
+					static function ($name, $value) {
+						return $name . '=' . $value;
+					},
+					array_keys($cookies),
+					array_values($cookies)
+				)
+			);
+		}
+	}
 
     /**
      * Set the options for the current installation
